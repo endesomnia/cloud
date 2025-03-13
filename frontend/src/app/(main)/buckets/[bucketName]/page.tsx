@@ -63,7 +63,6 @@ const Page = ({ params }: Props) => {
                 </Box>
               </Box>
               <Box className="flex justify-center items-center">
-                <FileRenameButton />
                 <FileRenameForm bucketName={params.bucketName} filename={file.name} setRefetch={setRefetchIndex} />
                 <FileDownloadButton bucketName={params.bucketName} filename={file.name} setRefetch={setRefetchIndex} />
                 <FileMoveButton />
