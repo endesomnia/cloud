@@ -32,3 +32,8 @@ docker compose -f docker-compose.build.yml up -d
 ```bash
 docker compose -f docker-compose.build.yml down
 ```
+
+###### удалить все данные с базы данных 
+```bash
+rm -rf data/*
+```
