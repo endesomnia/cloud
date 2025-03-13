@@ -1,0 +1,21 @@
+services:
+  backend:
+    image: cloud-back:nest-auth
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      - postgres
+    env_file:
+      - .env
+    working_dir: /usr/src/app
+
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    env_file:
+      - .env
+    volumes:
+      - /opt/postgresql/data:/var/lib/postgresql/data

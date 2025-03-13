@@ -1,0 +1,35 @@
+{
+  "compilerOptions": {
+    "baseUrl": "./",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "composite": true,
+    "target": "ESNext",
+    "module": "ESNext",
+    "esModuleInterop": true,
+    "moduleResolution": "bundler",
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@src/*": ["./src/*"],
+      "@app/*": ["./src/app/*"],
+      "@shared/*": ["./src/shared/*"],
+      "@entities/*": ["./src/entities/*"],
+      "@features/*": ["./src/features/*"],
+      "@widgets/*": ["./src/widgets/*"],
+      "@shared/lib/utils": ["./src/shared/lib/utils/*"],
+    },
+    "resolveJsonModule": true,
+    "isolatedModules": true
+  },
+  "include": ["src", "next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "next.config.оs", "../user-page", "../sign-in", "../start-up", "../buckets-p"],
+  "exclude": ["node_modules"]
+}

@@ -1,0 +1,1 @@
+export { getSessionUser } from './model'

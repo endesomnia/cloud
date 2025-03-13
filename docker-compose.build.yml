@@ -1,0 +1,35 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      - postgres
+    env_file:
+      - ./backend/.env
+    working_dir: /usr/src/app
+
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    env_file:
+      - ./backend/.env
+    volumes:
+      - /opt/postgresql/data:/var/lib/postgresql/data
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      - backend
+    env_file:
+      - ./frontend/.env
+    working_dir: /app
