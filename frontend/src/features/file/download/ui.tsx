@@ -1,19 +1,31 @@
 import React from 'react'
-import { Trash } from 'lucide-react'
+import { Download } from 'lucide-react'
 import { cn } from '@src/shared/lib'
 import { Button } from '@src/shared/ui'
 import { SetStateAction, Dispatch } from 'react'
 import { getFileByBucketAndName } from '@src/shared/api'
 import { toast } from 'sonner'
+import { useLanguage } from '@src/shared/context/languageContext'
 
 interface Props {
   bucketName: string
   filename: string
   setRefetch: Dispatch<SetStateAction<number>>
   classes?: string
+  buttonClassName?: string
+  iconOnly?: boolean
 }
 
-export const FileDownloadButton = ({ bucketName, classes, setRefetch, filename }: Props) => {
+export const FileDownloadButton = ({ 
+  bucketName, 
+  classes, 
+  setRefetch, 
+  filename, 
+  buttonClassName, 
+  iconOnly = false 
+}: Props) => {
+  const { t } = useLanguage()
+  
   const handleDownloadFile = async () => {
     try {
       const fileData = await getFileByBucketAndName({ bucketname: bucketName, filename })
@@ -37,10 +49,18 @@ export const FileDownloadButton = ({ bucketName, classes, setRefetch, filename }
   }
 
   return (
-    <Button onClick={handleDownloadFile} className={cn('', classes)}>
-      <span className="flex">
-        <Trash className="mr-2" size={20} /> Download File
-      </span>
+    <Button 
+      onClick={handleDownloadFile} 
+      className={cn('', buttonClassName || classes)}
+      title={t("download_file")}
+    >
+      {iconOnly ? (
+        <Download size={18} />
+      ) : (
+        <span className="flex items-center">
+          <Download className="mr-2" size={20} /> {t("download_button")}
+        </span>
+      )}
     </Button>
   )
 }

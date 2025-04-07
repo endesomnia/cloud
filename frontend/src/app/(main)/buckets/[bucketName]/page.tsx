@@ -1,26 +1,75 @@
 'use client'
 
-import { Box, Button } from '@shared/ui'
-import { FileDeleteButton } from '@src/features/file/delete'
-import { FileDownloadButton } from '@src/features/file/download'
-import { FileMoveButton, FileMoveForm } from '@src/features/file/move'
-import { FileRenameButton, FileRenameForm } from '@src/features/file/rename'
+import { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
+import { getFilesByBucket } from '@src/shared/api'
+import { formatDate, formatFileSize } from '@src/shared/lib'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuPortal, DropdownMenuTrigger } from '@shared/ui'
+import {
+  ArrowLeft,
+  Upload,
+  FolderOpen,
+  File,
+  Clock,
+  HardDrive,
+  LayoutGrid,
+  List,
+  SlidersHorizontal,
+  ArrowDownUp,
+  Search,
+  X,
+  ChevronDown,
+  Check
+} from 'lucide-react'
+import { Box } from '@shared/ui'
+import { routes } from '@shared/constant'
+import { motion } from 'framer-motion'
+import { useViewMode } from '@src/shared/context/viewModeContext'
 import { FileUploadButton, FileUploadForm } from '@src/features/file/upload'
-import { FileObj, getFilesByBucket } from '@src/shared/api'
-import { routes } from '@src/shared/constant'
-import { formatDate } from '@src/shared/lib'
-import { useCallback, useEffect, useState } from 'react'
+import { FileRenameForm } from '@src/features/file/rename'
+import { FileDownloadButton } from '@src/features/file/download' 
+import { FileMoveButton, FileMoveForm } from '@src/features/file/move'
+import { FileDeleteButton, FileDeleteForm } from '@src/features/file/delete/ui'
+import { useTheme } from '@src/shared/context/themeContext'
+import { useLanguage } from '@src/shared/context/languageContext'
 
 interface Props {
   params: { bucketName: string }
 }
 
+interface FileObj {
+  name: string
+  lastModified: Date
+  etag: string
+  size: number
+}
+
+type SortOption = 'name-asc' | 'name-desc' | 'date-asc' | 'date-desc' | 'size-asc' | 'size-desc';
+type FilterOption = 'all' | 'large' | 'medium' | 'small';
+
 const Page = ({ params }: Props) => {
   const [files, setFiles] = useState<FileObj[]>([])
+  const [filteredFiles, setFilteredFiles] = useState<FileObj[]>([])
   const [refetchIndex, setRefetchIndex] = useState(0)
+  const [isLoading, setIsLoading] = useState(true)
+  const [currentFolder, setCurrentFolder] = useState("")
+  const [searchQuery, setSearchQuery] = useState('')
+  const [sortOption, setSortOption] = useState<SortOption>('name-asc')
+  const [filterOption, setFilterOption] = useState<FilterOption>('all')
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false)
+  const [showSortDropdown, setShowSortDropdown] = useState(false)
+  const filterDropdownRef = useRef<HTMLDivElement>(null)
+  const sortDropdownRef = useRef<HTMLDivElement>(null)
+  
+  const { bucketFilesPageView, setBucketFilesPageView, isMounted } = useViewMode()
+  const router = useRouter()
+  const { theme } = useTheme()
+  const isDark = theme === 'dark'
+  const { t } = useLanguage()
 
-  useEffect(() => {
-    const fetchBuckets = async () => {
+  const fetchBuckets = async () => {
+    setIsLoading(true)
+    try {
       const filesObjs = await getFilesByBucket({ bucketname: params.bucketName })
       if (Array.isArray(filesObjs)) {
         setFiles(filesObjs)
@@ -28,61 +77,619 @@ const Page = ({ params }: Props) => {
         console.error('Expected bucketsData to be an array, received:', filesObjs)
         setFiles([])
       }
+    } catch (error) {
+      console.error('Error fetching files:', error)
+      setFiles([])
+    } finally {
+      setIsLoading(false)
     }
+  }
 
+  useEffect(() => {
     fetchBuckets()
   }, [refetchIndex])
 
+  useEffect(() => {
+    let result = [...files];
+    
+    if (searchQuery) {
+      result = result.filter(file => 
+        file.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    
+    switch (filterOption) {
+      case 'small':
+        result = result.filter(file => file.size < 100000); // меньше 100 KB
+        break;
+      case 'medium':
+        result = result.filter(file => file.size >= 100000 && file.size < 1000000); // от 100 KB до 1 MB
+        break;
+      case 'large':
+        result = result.filter(file => file.size >= 1000000); // более 1 MB
+        break;
+      default:
+  
+        break;
+    }
+    
+    switch (sortOption) {
+      case 'name-asc':
+        result.sort((a, b) => a.name.localeCompare(b.name));
+        break;
+      case 'name-desc':
+        result.sort((a, b) => b.name.localeCompare(a.name));
+        break;
+      case 'date-asc':
+        result.sort((a, b) => new Date(a.lastModified).getTime() - new Date(b.lastModified).getTime());
+        break;
+      case 'date-desc':
+        result.sort((a, b) => new Date(b.lastModified).getTime() - new Date(a.lastModified).getTime());
+        break;
+      case 'size-asc':
+        result.sort((a, b) => a.size - b.size);
+        break;
+      case 'size-desc':
+        result.sort((a, b) => b.size - a.size);
+        break;
+    }
+    
+    setFilteredFiles(result);
+  }, [files, searchQuery, filterOption, sortOption]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (filterDropdownRef.current && !filterDropdownRef.current.contains(event.target as Node)) {
+        setShowFilterDropdown(false);
+      }
+      if (sortDropdownRef.current && !sortDropdownRef.current.contains(event.target as Node)) {
+        setShowSortDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const setRefetch = (value: any) => {
+    setRefetchIndex(prev => prev + 1)
+  }
+  
+  const getSortLabel = (option: SortOption): string => {
+    switch (option) {
+      case 'name-asc': return t('name_asc');
+      case 'name-desc': return t('name_desc');
+      case 'date-asc': return t('date_asc');
+      case 'date-desc': return t('date_desc');
+      case 'size-asc': return t('size_asc');
+      case 'size-desc': return t('size_desc');
+      default: return t('sort');
+    }
+  };
+
+  const getFilterLabel = (option: FilterOption): string => {
+    switch (option) {
+      case 'all': return t('all_files');
+      case 'small': return t('small_files');
+      case 'medium': return t('medium_files');
+      case 'large': return t('large_files');
+      default: return t('filters');
+    }
+  };
+
   return (
-    <Box>
-      <Box className="flex justify-between w-1/2">
-        <h1 className="text-3xl justify-start m-5">
-          Files list in Folder <span className="text-gray-800 font-bold">{params.bucketName}</span>
-        </h1>
-        <FileUploadButton classes="text-xl p-4 my-2 mb-0" />
-        <FileUploadForm setRefetch={setRefetchIndex} bucketName={params.bucketName} />
-      </Box>
-      {files.length > 0 ? (
-        <ul>
-          {files.map((file: FileObj, index) => (
-            <li key={index} className="m-5 p-2 border border-gray-700 flex justify-between rounded-md">
-              <Box>
-                <Box className="text-xl p-2 m-3 flex flex-col items-start">
-                  <div>
-                    <span className="text-gray-500">Name:</span>{' '}
-                    <span className="text-gray-800 font-bold">{file.name}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">Size:</span>{' '}
-                    <span className="text-gray-800 font-bold">{file.size}kb</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">Last Modified:</span>{' '}
-                    <span className="text-gray-800 font-bold">{formatDate(file.lastModified)}</span>
-                  </div>
-                </Box>
-              </Box>
-              <Box className="flex justify-center items-center">
-                <FileRenameForm bucketName={params.bucketName} filename={file.name} setRefetch={setRefetchIndex} />
-                <FileDownloadButton bucketName={params.bucketName} filename={file.name} setRefetch={setRefetchIndex} />
-                <FileMoveButton />
-                <FileMoveForm bucketName={params.bucketName} fileName={file.name} setRefetch={setRefetchIndex} />
-                <FileDeleteButton
-                  setRefetch={setRefetchIndex}
-                  filename={file.name}
-                  bucketName={params.bucketName}
-                  classes="m-2"
+    <main className={`min-h-screen overflow-hidden ${!isDark && 'bg-gray-50'} theme-transition`}>
+      <div className="absolute inset-0 w-full h-full overflow-hidden">
+        <div 
+          className={`absolute top-[-15%] left-[-10%] w-[800px] h-[800px] ${isDark 
+            ? 'bg-gradient-to-br from-[#1E293B]/60 via-[#334155]/40 to-[#1E293B]/60' 
+            : 'bg-gradient-to-br from-blue-100/60 via-blue-50/40 to-blue-100/60'
+          } rounded-full mix-blend-normal filter blur-[120px] animate-blob opacity-70 theme-transition`}
+        />
+        <div 
+          className={`absolute top-[35%] right-[-15%] w-[800px] h-[800px] ${isDark 
+            ? 'bg-gradient-to-bl from-[#0F172A]/80 via-[#1E293B]/60 to-[#0F172A]/80' 
+            : 'bg-gradient-to-bl from-gray-100/80 via-gray-50/60 to-white/80'
+          } rounded-full mix-blend-normal filter blur-[110px] animate-blob animation-delay-2000 theme-transition`}
+        />
+        <div 
+          className={`absolute bottom-[-20%] left-[25%] w-[1000px] h-[1000px] ${isDark 
+            ? 'bg-gradient-to-tr from-[#1E293B]/60 via-[#334155]/40 to-[#1E293B]/60' 
+            : 'bg-gradient-to-tr from-gray-100/60 via-gray-50/40 to-gray-100/60'
+          } rounded-full mix-blend-normal filter blur-[140px] animate-blob animation-delay-4000 theme-transition`}
+        />
+        <div 
+          className={`absolute top-[20%] left-[50%] w-[500px] h-[500px] ${isDark 
+            ? 'bg-gradient-to-bl from-[#3B82F6]/10 via-[#60A5FA]/5 to-transparent' 
+            : 'bg-gradient-to-bl from-blue-200/30 via-blue-100/20 to-transparent'
+          } rounded-full mix-blend-normal filter blur-[80px] animate-blob animation-delay-3000 theme-transition`}
+        />
+      </div>
+
+      <div 
+        className={`absolute inset-0 ${isDark
+          ? "bg-[url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSA2MCAwIEwgMCAwIDAgNjAiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNTUsMjU1LDI1NSwwLjAzKSIgc3Ryb2tlLXdpZHRoPSIwLjUiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=)]"
+          : "bg-[url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSA2MCAwIEwgMCAwIDAgNjAiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgwLDAsMCwwLjAzKSIgc3Ryb2tlLXdpZHRoPSIwLjUiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=)]"
+        } opacity-30 theme-transition`}
+      />
+
+      <Box className="w-full px-6 md:px-10 lg:px-16 py-10 relative z-10">
+        <div className="flex flex-col">
+          <div className="flex flex-col md:flex-row justify-between items-center mb-10 animate-fade-in">
+            <div className="flex items-center relative">
+              <button 
+                onClick={() => router.push(routes.buckets)}
+                className={`mr-4 p-2 rounded-lg ${isDark 
+                  ? 'bg-[#1E293B]/70 hover:bg-[#1E293B] text-gray-300 hover:text-white border-gray-700/30 hover:border-[#3B82F6]/40' 
+                  : 'bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-800 border-gray-200 hover:border-blue-500/40'
+                } transition-all duration-300 border hover:shadow-md hover:shadow-[#3B82F6]/5 group theme-transition`}
+              >
+                <ArrowLeft size={20} className={`${isDark 
+                  ? 'group-hover:text-[#3B82F6]' 
+                  : 'group-hover:text-blue-500'
+                } transition-colors duration-300 theme-transition`} />
+              </button>
+              
+              <div className="flex items-center">
+                <div className="relative mr-3 bg-gradient-to-br from-[#3B82F6] to-[#60A5FA] p-2.5 rounded-md shadow-md shadow-[#3B82F6]/20 group animate-float transform-gpu">
+                  <FolderOpen size={24} className="text-white" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 group-hover:translate-x-full transition-all duration-1000 ease-in-out"></div>
+                </div>
+                <div>
+                  <h1 className={`text-4xl font-bold text-transparent bg-clip-text ${isDark 
+                    ? 'bg-gradient-to-r from-white to-gray-400' 
+                    : 'bg-gradient-to-r from-gray-900 to-gray-600'
+                  } theme-transition`}>
+                    {params.bucketName}
+                  </h1>
+                  <p className={`${isDark ? 'text-gray-400' : 'text-gray-500'} text-sm mt-1 theme-transition`}>{t('files_in_folder')}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center mt-4 md:mt-0 space-x-4">
+              <div className="relative flex-grow md:flex-grow-0 mr-2">
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <Search className={`h-4 w-4 ${isDark ? 'text-gray-400' : 'text-gray-500'} theme-transition`} />
+                </div>
+                <input 
+                  type="search" 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className={`block w-full md:w-60 p-2 pl-10 h-10 text-sm ${isDark 
+                    ? 'bg-[#1E293B]/60 hover:bg-[#1E293B]/80 focus:bg-[#1E293B] border-gray-700/50 text-white focus:ring-[#3B82F6]/50 focus:border-[#3B82F6]/50' 
+                    : 'bg-white/60 hover:bg-white/80 focus:bg-white border-gray-300 text-gray-700 focus:ring-blue-500/50 focus:border-blue-500/50'
+                  } border rounded-lg transition-all duration-200 theme-transition`} 
+                  placeholder={`${t('search')}...`} 
                 />
-              </Box>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <Box className="flex justify-center items-center h-full">
-          <span className="text-gray-800 font-bold text-7xl">Files not found.</span>
-        </Box>
-      )}
-    </Box>
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className={`absolute inset-y-0 right-3 flex items-center ${isDark ? 'text-gray-400' : 'text-gray-500'}`}
+                  >
+                    <X size={16} />
+                  </button>
+                )}
+              </div>
+              
+              <div className="flex items-center space-x-2 mr-2">
+                <button 
+                  onClick={() => setBucketFilesPageView('grid')} 
+                  className={`p-2 rounded-md transition-all duration-300 ${isMounted && bucketFilesPageView === 'grid' 
+                    ? 'bg-[#3B82F6] text-white' 
+                    : isDark
+                      ? 'bg-[#1E293B]/70 hover:bg-[#1E293B] text-gray-300 hover:text-white border-gray-700/30 hover:border-[#3B82F6]/40' 
+                      : 'bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-800 border-gray-200 hover:border-blue-500/40'
+                  } border theme-transition`}
+                  title={t('grid_view')}
+                >
+                  <LayoutGrid size={18} />
+                </button>
+                <button 
+                  onClick={() => setBucketFilesPageView('list')} 
+                  className={`p-2 rounded-md transition-all duration-300 ${isMounted && bucketFilesPageView === 'list' 
+                    ? 'bg-[#3B82F6] text-white' 
+                    : isDark
+                      ? 'bg-[#1E293B]/70 hover:bg-[#1E293B] text-gray-300 hover:text-white border-gray-700/30 hover:border-[#3B82F6]/40' 
+                      : 'bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-800 border-gray-200 hover:border-blue-500/40'
+                  } border theme-transition`}
+                  title={t('list_view')}
+                >
+                  <List size={18} />
+                </button>
+              </div>
+              
+              <div className="relative" ref={filterDropdownRef}>
+                <DropdownMenu open={showFilterDropdown} onOpenChange={setShowFilterDropdown}>
+                  <DropdownMenuTrigger asChild>
+                    <button 
+                      onClick={() => {
+                        setShowFilterDropdown(!showFilterDropdown);
+                        setShowSortDropdown(false);
+                      }}
+                      className={`${isDark 
+                        ? 'bg-[#1E293B]/70 hover:bg-[#1E293B] text-gray-300 hover:text-white border-gray-700/30 hover:border-[#3B82F6]/40 hover:shadow-[#3B82F6]/5' 
+                        : 'bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-800 border-gray-200 hover:border-blue-500/40 hover:shadow-blue-500/5'
+                      } h-11 px-5 rounded-lg text-sm font-medium flex items-center transition-all duration-300 border hover:shadow-md group theme-transition ${filterOption !== 'all' ? (isDark ? 'border-[#3B82F6]/50' : 'border-blue-500/50') : ''}`}
+                    >
+                      <SlidersHorizontal size={16} className={`mr-2 ${isDark 
+                        ? (filterOption !== 'all' ? 'text-[#3B82F6]' : 'group-hover:text-[#3B82F6]') 
+                        : (filterOption !== 'all' ? 'text-blue-500' : 'group-hover:text-blue-500')
+                      } transition-colors duration-300 theme-transition`} />
+                      <span>{getFilterLabel(filterOption)}</span>
+                      <ChevronDown size={16} className="ml-2" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  
+                  <DropdownMenuPortal>
+                    <DropdownMenuContent 
+                      className={`w-56 rounded-lg shadow-lg ${isDark 
+                        ? 'bg-[#1F2937] border border-gray-700' 
+                        : 'bg-white border border-gray-200'
+                      } theme-transition`}
+                    >
+                      <div className="py-1 rounded-lg overflow-hidden">
+                        {(['all', 'small', 'medium', 'large'] as FilterOption[]).map(option => (
+                          <DropdownMenuItem
+                            key={option}
+                            onClick={() => {
+                              setFilterOption(option);
+                              setShowFilterDropdown(false);
+                            }}
+                            className={`flex items-center w-full px-4 py-2 text-sm ${
+                              option === filterOption
+                                ? isDark
+                                  ? 'bg-[#3B82F6]/10 text-[#3B82F6]'
+                                  : 'bg-blue-50 text-blue-700'
+                                : isDark
+                                  ? 'text-gray-300 hover:bg-gray-800'
+                                  : 'text-gray-700 hover:bg-gray-100'
+                            } theme-transition`}
+                          >
+                            {option === filterOption && <Check size={16} className="mr-2" />}
+                            <span className={option === filterOption ? "font-medium" : ""}>{getFilterLabel(option)}</span>
+                          </DropdownMenuItem>
+                        ))}
+                      </div>
+                    </DropdownMenuContent>
+                  </DropdownMenuPortal>
+                </DropdownMenu>
+              </div>
+              
+              <div className="relative" ref={sortDropdownRef}>
+                <DropdownMenu open={showSortDropdown} onOpenChange={setShowSortDropdown}>
+                  <DropdownMenuTrigger asChild>
+                    <button 
+                      onClick={() => {
+                        setShowSortDropdown(!showSortDropdown);
+                        setShowFilterDropdown(false);
+                      }}
+                      className={`${isDark 
+                        ? 'bg-[#1E293B]/70 hover:bg-[#1E293B] text-gray-300 hover:text-white border-gray-700/30 hover:border-[#3B82F6]/40 hover:shadow-[#3B82F6]/5' 
+                        : 'bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-800 border-gray-200 hover:border-blue-500/40 hover:shadow-blue-500/5'
+                      } h-11 px-5 rounded-lg text-sm font-medium flex items-center transition-all duration-300 border hover:shadow-md group theme-transition ${sortOption !== 'name-asc' ? (isDark ? 'border-[#3B82F6]/50' : 'border-blue-500/50') : ''}`}
+                    >
+                      <ArrowDownUp size={16} className={`mr-2 ${isDark 
+                        ? (sortOption !== 'name-asc' ? 'text-[#3B82F6]' : 'group-hover:text-[#3B82F6]') 
+                        : (sortOption !== 'name-asc' ? 'text-blue-500' : 'group-hover:text-blue-500')
+                      } transition-colors duration-300 theme-transition`} />
+                      <span>{getSortLabel(sortOption)}</span>
+                      <ChevronDown size={16} className="ml-2" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  
+                  <DropdownMenuPortal>
+                    <DropdownMenuContent 
+                      className={`w-56 rounded-lg shadow-lg ${isDark 
+                        ? 'bg-[#1F2937] border border-gray-700' 
+                        : 'bg-white border border-gray-200'
+                      } theme-transition`}
+                    >
+                      <div className="py-1 rounded-lg overflow-hidden">
+                        {(['name-asc', 'name-desc', 'date-asc', 'date-desc', 'size-asc', 'size-desc'] as SortOption[]).map(option => (
+                          <DropdownMenuItem
+                            key={option}
+                            onClick={() => {
+                              setSortOption(option);
+                              setShowSortDropdown(false);
+                            }}
+                            className={`flex items-center w-full px-4 py-2 text-sm ${
+                              option === sortOption
+                                ? isDark
+                                  ? 'bg-[#3B82F6]/10 text-[#3B82F6]'
+                                  : 'bg-blue-50 text-blue-700'
+                                : isDark
+                                  ? 'text-gray-300 hover:bg-gray-800'
+                                  : 'text-gray-700 hover:bg-gray-100'
+                            } theme-transition`}
+                          >
+                            {option === sortOption && <Check size={16} className="mr-2" />}
+                            <span className={option === sortOption ? "font-medium" : ""}>{getSortLabel(option)}</span>
+                          </DropdownMenuItem>
+                        ))}
+                      </div>
+                    </DropdownMenuContent>
+                  </DropdownMenuPortal>
+                </DropdownMenu>
+              </div>
+              
+              <FileUploadButton classes={`${isDark 
+                ? 'bg-gradient-to-r from-[#3B82F6] to-[#60A5FA] hover:from-[#2563EB] hover:to-[#3B82F6]' 
+                : 'bg-gradient-to-r from-[#2563EB] to-[#3B82F6] hover:from-[#1D4ED8] hover:to-[#2563EB]'
+              } text-white h-11 px-5 rounded-lg text-sm font-medium transition-all duration-300 shadow-md shadow-blue-500/20 flex items-center group theme-transition`}/>
+              <FileUploadForm bucketName={params.bucketName} setRefetch={setRefetch} onUploadComplete={fetchBuckets} />
+            </div>
+          </div>
+
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center h-[60vh]">
+              <div className="relative">
+                <div className={`w-16 h-16 border-4 ${isDark 
+                  ? 'border-[#1E293B] border-t-[#3B82F6]' 
+                  : 'border-gray-200 border-t-blue-500'
+                } rounded-full animate-spin theme-transition`}></div>
+                <div className={`absolute inset-0 w-16 h-16 border-4 border-transparent ${isDark 
+                  ? 'border-t-[#60A5FA]/30' 
+                  : 'border-t-blue-300/50'
+                } rounded-full animate-spin theme-transition`} style={{ animationDuration: '1.5s' }}></div>
+              </div>
+              <p className={`mt-6 ${isDark ? 'text-gray-400' : 'text-gray-500'} text-lg animate-pulse theme-transition`}>
+                {t('loading_buckets')}...
+              </p>
+            </div>
+          ) : filteredFiles.length > 0 ? (
+            bucketFilesPageView === 'grid' ? (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-fade-in animation-delay-200">
+                {filteredFiles.map((file, index) => (
+                  <div 
+                    key={index}
+                    className={`group ${isDark 
+                      ? 'bg-gradient-to-br from-[#1F2937]/90 to-[#1F2937]/70 border-gray-800/60 hover:border-[#3B82F6]/40 hover:shadow-[#3B82F6]/10' 
+                      : 'bg-gradient-to-br from-white/90 to-white/70 border-gray-200 hover:border-blue-500/40 hover:shadow-blue-500/10'
+                    } border rounded-xl overflow-hidden hover:shadow-2xl transition-all duration-500 backdrop-blur-sm transform-gpu hover:translate-y-[-5px] relative theme-transition`}
+                    style={{ animationDelay: `${index * 100}ms` }}
+                  >
+                    <div className={`absolute inset-0 w-full h-full ${isDark 
+                      ? 'bg-gradient-to-br from-[#3B82F6]/5 via-transparent to-[#60A5FA]/5' 
+                      : 'bg-gradient-to-br from-blue-500/5 via-transparent to-blue-400/5'
+                    } opacity-0 group-hover:opacity-100 transition-opacity duration-700 theme-transition`}></div>
+                    
+                    <div className={`absolute -inset-0.5 ${isDark 
+                      ? 'bg-gradient-to-r from-[#3B82F6]/0 via-[#3B82F6]/20 to-[#3B82F6]/0' 
+                      : 'bg-gradient-to-r from-blue-500/0 via-blue-500/20 to-blue-500/0'
+                    } rounded-xl opacity-0 group-hover:opacity-100 blur-md transition-opacity duration-700 animate-gradient-x theme-transition`}></div>
+                    
+                    <div className="p-8 flex flex-col h-full relative">
+                      <div className={`absolute -right-20 -top-20 w-52 h-52 ${isDark 
+                        ? 'bg-gradient-to-br from-[#3B82F6]/10 to-transparent' 
+                        : 'bg-gradient-to-br from-blue-400/10 to-transparent'
+                      } rounded-full blur-xl group-hover:scale-150 transition-transform duration-1000 opacity-0 group-hover:opacity-100 theme-transition`}></div>
+                      
+                      <div className="flex justify-between items-start mb-6 relative z-10">
+                        <div className="relative group/icon transform transition-all duration-300 group-hover:rotate-2 group-hover:scale-105">
+                          <div className="absolute -inset-1 bg-gradient-to-r from-[#3B82F6]/60 to-[#60A5FA]/60 rounded-lg blur opacity-0 group-hover:opacity-30 transition-opacity duration-300"></div>
+                          <div className="relative bg-gradient-to-r from-[#3B82F6] to-[#60A5FA] rounded-lg p-4 text-white shadow-lg shadow-[#3B82F6]/20 transform transition-all duration-300 group-hover/icon:shadow-[#3B82F6]/40 group-hover/icon:shadow-xl">
+                            <File size={28} className="relative z-10 transform transition-transform group-hover/icon:scale-110" />
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center flex-wrap gap-2 justify-end pl-2">
+                          <FileRenameForm bucketName={params.bucketName} filename={file.name} setRefetch={setRefetch} />
+                          <FileDownloadButton bucketName={params.bucketName} filename={file.name} setRefetch={setRefetch} />
+                          <FileMoveButton />
+                          <FileMoveForm bucketName={params.bucketName} fileName={file.name} setRefetch={setRefetch} />
+                          <FileDeleteButton fileName={file.name} />
+                          <FileDeleteForm bucketName={params.bucketName} fileName={file.name} setRefetch={setRefetch} />
+                        </div>
+                      </div>
+                      
+                      <div className="flex-grow">
+                        <h3 className={`font-semibold text-2xl mb-4 truncate ${isDark 
+                          ? 'text-white group-hover:text-[#3B82F6]' 
+                          : 'text-gray-800 group-hover:text-blue-600'
+                        } transition-colors duration-300 theme-transition`}>
+                          {file.name}
+                        </h3>
+                        
+                        <div className={`space-y-3 text-base ${isDark ? 'text-gray-400' : 'text-gray-500'} theme-transition`}>
+                          <div className="flex items-center">
+                            <HardDrive size={18} className={`mr-3 ${isDark ? 'text-[#3B82F6]' : 'text-blue-500'} theme-transition`} />
+                            <span className={`${isDark ? 'text-gray-300' : 'text-gray-600'} theme-transition`}>{formatFileSize(file.size)}</span>
+                          </div>
+                          <div className="flex items-center">
+                            <Clock size={18} className={`mr-3 ${isDark ? 'text-[#3B82F6]' : 'text-blue-500'} theme-transition`} />
+                            <span className={`${isDark ? 'text-gray-300' : 'text-gray-600'} theme-transition`}>{formatDate(file.lastModified)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="animate-fade-in animation-delay-200">
+                <div className={`${isDark 
+                  ? 'bg-[#1F2937]/80 border-gray-800/60' 
+                  : 'bg-white/80 border-gray-200'
+                } border rounded-xl overflow-hidden backdrop-blur-sm mb-4 theme-transition`}>
+                  <div className={`grid grid-cols-12 py-3 px-6 ${isDark 
+                    ? 'border-b border-gray-800/60 text-gray-400' 
+                    : 'border-b border-gray-200 text-gray-500'
+                  } text-sm font-medium theme-transition`}>
+                    <div className="col-span-4 md:col-span-5">{t('name')}</div>
+                    <div className="col-span-3 md:col-span-2 text-center">{t('size')}</div>
+                    <div className="col-span-3 md:col-span-3 text-center">{t('last_modified')}</div>
+                    <div className="col-span-2 md:col-span-2 text-right">{t('actions')}</div>
+                  </div>
+                  
+                  {filteredFiles.map((file, index) => (
+                    <motion.div 
+                      key={index}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      className={`grid grid-cols-12 py-4 px-6 ${isDark 
+                        ? 'border-b border-gray-800/40 hover:bg-[#1F2937]' 
+                        : 'border-b border-gray-200/40 hover:bg-gray-50'
+                      } transition-colors duration-200 relative group theme-transition`}
+                    >
+                      <div className="col-span-4 md:col-span-5 flex items-center">
+                        <div className={`flex-shrink-0 w-10 h-10 rounded-lg ${isDark 
+                          ? 'bg-gradient-to-r from-[#3B82F6]/20 to-[#60A5FA]/20 text-blue-300' 
+                          : 'bg-gradient-to-r from-blue-500/10 to-blue-400/10 text-blue-600'
+                        } flex items-center justify-center mr-3 theme-transition`}>
+                          <File size={24} className="drop-shadow-md" />
+                        </div>
+                        <div className={`truncate font-medium ${isDark 
+                          ? 'text-white hover:text-[#3B82F6]' 
+                          : 'text-gray-800 hover:text-blue-600'
+                        } transition-colors duration-300 theme-transition`}>
+                          {file.name}
+                        </div>
+                      </div>
+                      
+                      <div className={`col-span-3 md:col-span-2 flex items-center justify-center text-sm ${isDark 
+                        ? 'text-gray-300' 
+                        : 'text-gray-600'
+                      } theme-transition`}>
+                        {formatFileSize(file.size)}
+                      </div>
+                      
+                      <div className={`col-span-3 md:col-span-3 flex items-center justify-center text-sm ${isDark 
+                        ? 'text-gray-300' 
+                        : 'text-gray-600'
+                      } theme-transition`}>
+                        {formatDate(file.lastModified)}
+                      </div>
+                      
+                      <div className="col-span-2 md:col-span-2 flex items-center justify-end space-x-2">
+                        <FileDownloadButton 
+                          bucketName={params.bucketName} 
+                          filename={file.name} 
+                          setRefetch={setRefetch} 
+                          buttonClassName={`p-2 rounded-full ${isDark 
+                            ? 'text-gray-300 hover:text-blue-300 hover:bg-[#111827]/70' 
+                            : 'text-gray-500 hover:text-blue-500 hover:bg-gray-100'
+                          } transition-all duration-300 theme-transition`} 
+                          iconOnly={true} 
+                        />
+                        <FileDeleteButton
+                          fileName={file.name}
+                          buttonClassName={`p-2 rounded-full ${isDark 
+                            ? 'text-gray-300 hover:text-red-300 hover:bg-[#111827]/70' 
+                            : 'text-gray-500 hover:text-red-500 hover:bg-gray-100'
+                          } transition-all duration-300 theme-transition`}
+                          iconOnly={true}
+                        />
+                        <FileDeleteForm bucketName={params.bucketName} fileName={file.name} setRefetch={setRefetch} />
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            )
+          ) : searchQuery || filterOption !== 'all' ? (
+            <div className="flex flex-col items-center justify-center h-[65vh] animate-fade-in animation-delay-400 text-center">
+              <div className="relative group perspective-800">
+                <div className={`absolute inset-0 ${isDark 
+                  ? 'bg-gradient-to-r from-[#3B82F6]/20 to-[#60A5FA]/20' 
+                  : 'bg-gradient-to-r from-blue-500/20 to-blue-400/20'
+                } rounded-full blur-xl opacity-80 animate-pulse-slow theme-transition`}></div>
+                <div className={`relative z-10 p-8 rounded-full ${isDark 
+                  ? 'bg-gradient-to-br from-[#1E293B] to-[#111827] border-gray-700/40' 
+                  : 'bg-gradient-to-br from-white to-gray-50 border-gray-200'
+                } border shadow-2xl transform transition-transform duration-700 group-hover:rotate-3 group-hover:scale-110 theme-transition`}>
+                  <SlidersHorizontal size={64} className={`${isDark ? 'text-gray-500' : 'text-gray-400'} theme-transition`} />
+                </div>
+                <div className={`absolute -inset-0.5 ${isDark 
+                  ? 'bg-gradient-to-r from-[#3B82F6]/0 via-[#3B82F6]/20 to-[#3B82F6]/0' 
+                  : 'bg-gradient-to-r from-blue-500/0 via-blue-500/20 to-blue-500/0'
+                } rounded-full blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-1000 animate-gradient-x theme-transition`}></div>
+              </div>
+              
+              <h2 className={`text-4xl font-bold ${isDark 
+                ? 'text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400' 
+                : 'text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-600'
+              } mt-8 mb-3 theme-transition`}>
+                {t('files_not_found')}
+              </h2>
+              <p className={`${isDark ? 'text-gray-400' : 'text-gray-500'} mb-6 text-center max-w-md text-lg theme-transition`}>
+                {t('no_matching_files')}
+              </p>
+              
+              <div className="flex flex-wrap gap-4 justify-center">
+                {searchQuery && (
+                  <button 
+                    onClick={() => setSearchQuery('')}
+                    className={`${isDark 
+                      ? 'bg-[#1E293B]/80 hover:bg-[#1E293B] text-gray-300 hover:text-white border-gray-700/30' 
+                      : 'bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-800 border-gray-200'
+                    } px-4 py-2 rounded-lg border transition-all duration-300 flex items-center`}
+                  >
+                    <X size={16} className="mr-2" />
+                    <span>{t('clear_search')}</span>
+                  </button>
+                )}
+                
+                {filterOption !== 'all' && (
+                  <button 
+                    onClick={() => setFilterOption('all')}
+                    className={`${isDark 
+                      ? 'bg-[#1E293B]/80 hover:bg-[#1E293B] text-gray-300 hover:text-white border-gray-700/30' 
+                      : 'bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-800 border-gray-200'
+                    } px-4 py-2 rounded-lg border transition-all duration-300 flex items-center`}
+                  >
+                    <SlidersHorizontal size={16} className="mr-2" />
+                    <span>{t('reset_filters')}</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-[65vh] animate-fade-in animation-delay-400 text-center">
+              <div className="relative group perspective-800">
+                <div className={`absolute inset-0 ${isDark 
+                  ? 'bg-gradient-to-r from-[#3B82F6]/20 to-[#60A5FA]/20' 
+                  : 'bg-gradient-to-r from-blue-500/20 to-blue-400/20'
+                } rounded-full blur-xl opacity-80 animate-pulse-slow theme-transition`}></div>
+                <div className={`relative z-10 p-8 rounded-full ${isDark 
+                  ? 'bg-gradient-to-br from-[#1E293B] to-[#111827] border-gray-700/40' 
+                  : 'bg-gradient-to-br from-white to-gray-50 border-gray-200'
+                } border shadow-2xl transform transition-transform duration-700 group-hover:rotate-3 group-hover:scale-110 theme-transition`}>
+                  <Upload size={64} className={`${isDark ? 'text-gray-500' : 'text-gray-400'} theme-transition`} />
+                </div>
+                <div className={`absolute -inset-0.5 ${isDark 
+                  ? 'bg-gradient-to-r from-[#3B82F6]/0 via-[#3B82F6]/20 to-[#3B82F6]/0' 
+                  : 'bg-gradient-to-r from-blue-500/0 via-blue-500/20 to-blue-500/0'
+                } rounded-full blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-1000 animate-gradient-x theme-transition`}></div>
+              </div>
+              
+              <h2 className={`text-4xl font-bold ${isDark 
+                ? 'text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400' 
+                : 'text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-600'
+              } mt-8 mb-3 theme-transition`}>
+                {t('files_not_found')}
+              </h2>
+              <p className={`${isDark ? 'text-gray-400' : 'text-gray-500'} mb-10 text-center max-w-md text-lg theme-transition`}>
+                {t('no_files_in_bucket')}
+              </p>
+              <p className={`${isDark ? 'text-gray-400/70' : 'text-gray-500/70'} mb-10 text-center max-w-md text-base theme-transition`}>
+                {t('upload_your_first_file')}
+              </p>
+              
+              <div className="group">
+                <FileUploadButton classes={`${isDark 
+                  ? 'bg-gradient-to-r from-[#3B82F6] to-[#60A5FA] hover:from-[#2563EB] hover:to-[#3B82F6]' 
+                  : 'bg-gradient-to-r from-[#2563EB] to-[#3B82F6] hover:from-[#1D4ED8] hover:to-[#2563EB]'
+                } text-white h-12 px-8 rounded-xl text-base font-medium transition-all duration-500 shadow-xl shadow-blue-500/20 flex items-center transform hover:scale-105 theme-transition`}/>
+              </div>
+            </div>
+          )}
+        </div>
+      </Box>
+    </main>
   )
 }
 

@@ -15,4 +15,4 @@ import { NestMinioModule } from 'nestjs-minio';
     }),
   ],
 })
-export class NestMinioClientModule {}
+export class MinioModule {}

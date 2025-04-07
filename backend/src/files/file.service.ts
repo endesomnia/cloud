@@ -1,15 +1,23 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { log } from 'console';
 import { Client, BucketItem } from 'minio';
 import { MINIO_CONNECTION } from 'nestjs-minio';
+import { UsersService } from '../users/users.service';
 
 @Injectable()
 export class FileService {
-  constructor(@Inject(MINIO_CONNECTION) private readonly minioClient: Client) {}
+  constructor(
+    @Inject(MINIO_CONNECTION) private readonly minioClient: Client,
+    private readonly usersService: UsersService,
+  ) {}
 
   // get file content in bucket/filename
-  async getFile(bucketname: string, filename: string) {
+  async getFile(bucketname: string, filename: string, userId?: string) {
     try {
+      // Увеличиваем счетчик скачиваний, если указан userId
+      if (userId) {
+        await this.usersService.incrementFileDownloaded(userId);
+      }
+      
       return this.minioClient.getObject(bucketname, filename);
     } catch (error) {
       throw new Error(`Error fetching file: ${error.message}`);
@@ -34,6 +42,7 @@ export class FileService {
   async uploadFile(
     bucketName: string,
     file: Express.Multer.File,
+    userId?: string,
   ): Promise<any> {
     const metaData = {
       'Content-Type': file.mimetype,
@@ -48,6 +57,12 @@ export class FileService {
         file.size,
         metaData,
       );
+      
+      // Обновляем статистику пользователя, если указан userId
+      if (userId) {
+        await this.usersService.incrementFileUploaded(userId, file.size, file.mimetype);
+      }
+      
       return {
         message: 'File uploaded successfully',
         fileName: file.originalname,
@@ -59,8 +74,23 @@ export class FileService {
   }
 
   // DELETE
-  async deleteFile(bucketname: string, filename: string) {
+  async deleteFile(bucketname: string, filename: string, userId?: string) {
     try {
+      // Если передан userId, нужно получить информацию о файле для обновления статистики
+      if (userId) {
+        try {
+          const stat = await this.minioClient.statObject(bucketname, filename);
+          await this.usersService.incrementFileDeleted(
+            userId,
+            stat.size,
+            stat.metaData['Content-Type'] || '',
+          );
+        } catch (statError) {
+          console.error('Error getting file stats:', statError);
+          // Продолжаем удаление даже если не удалось получить статистику
+        }
+      }
+      
       await this.minioClient.removeObject(bucketname, filename);
       return { message: 'File remove successfully' };
     } catch (error) {

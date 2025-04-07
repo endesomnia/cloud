@@ -9,7 +9,6 @@ import {
 import { AuthService } from './auth.service';
 import { ApiBody } from '@nestjs/swagger';
 import { CreateUserDto, GetUserByIdDto, VerifyUserDto } from './dto';
-import { log } from 'console';
 
 @Controller('auth')
 export class AuthController {

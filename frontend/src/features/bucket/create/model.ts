@@ -6,7 +6,13 @@ interface BucketForm {
 }
 
 export function useBucketFormModel() {
-  const { register, handleSubmit, reset } = useForm<BucketForm>()
+  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<BucketForm>({
+    defaultValues: {
+      name: ''
+    },
+    mode: 'onChange',
+    reValidateMode: 'onChange'
+  })
   const [accessMode, setAccessMode] = useState<'public' | 'private'>('public')
 
   return {
@@ -15,5 +21,7 @@ export function useBucketFormModel() {
     reset,
     accessMode,
     setAccessMode,
+    errors,
+    isSubmitting
   }
 }

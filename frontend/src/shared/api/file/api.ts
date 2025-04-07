@@ -8,47 +8,48 @@ export interface FileObj {
   size: number
 }
 
-interface GetFilesByBucket {
-  bucketname: string
+export interface UploadFileResponse {
+  message: string
+  fileName: string
+  placedOn: string
+  error?: Error
 }
 
-interface GetFileByBucketAndName {
+export interface UploadFile {
+  bucketname: string
+  file: File
+  userId?: string
+}
+
+export interface DeleteFileByBucketAndName {
   bucketname: string
   filename: string
+  userId?: string
 }
 
-interface UploadFile {
+export interface GetFilesByBucket {
   bucketname: string
-  file: Blob
 }
 
-interface MoveFile {
-  bucketname: string
+export interface MoveFile {
+  sourceBucket: string
   targetBucket: string
   filename: string
 }
 
-interface RenameFile {
+export interface RenameFile {
   bucketname: string
-  filename: string
-  newFilename: string
+  oldFileName: string
+  newFileName: string
 }
-
-interface DeleteFileByBucketAndName {
-  bucketname: string
-  filename: string
-}
-interface UploadFileResponse {}
-interface MoveFileResponse {}
-interface DeleteFileResponse {}
 
 // Function to get files by bucket name
 export const getFilesByBucket = async ({ bucketname }: GetFilesByBucket): Promise<FileObj[]> => {
   try {
-    const response = await api.get<FileObj[]>(`/${fileUrlPrefix}/${bucketname}`)
+    const response = await api.get<FileObj[]>(`${fileUrlPrefix}/${bucketname}`)
     return response.data
   } catch (error: any) {
-    console.error('Failed to fetch files:', error)
+    console.error('Ошибка при получении файлов:', error)
     return []
   }
 }
@@ -57,71 +58,86 @@ export const getFilesByBucket = async ({ bucketname }: GetFilesByBucket): Promis
 export const getFileByBucketAndName = async ({
   bucketname,
   filename,
+  userId
 }: {
   bucketname: string
   filename: string
+  userId?: string
 }): Promise<Blob | undefined> => {
   try {
-    const response = await api.get(`/${fileUrlPrefix}/${bucketname}/${filename}`, {
+    const url = userId 
+      ? `${fileUrlPrefix}/${bucketname}/${filename}?userId=${userId}`
+      : `${fileUrlPrefix}/${bucketname}/${filename}`
+      
+    const response = await api.get(url, {
       responseType: 'blob', // Important: set responseType to 'blob'
     })
     return response.data
   } catch (error: any) {
-    console.error('Failed to fetch file:', error)
+    console.error('Ошибка при получении файла:', error)
     return undefined
   }
 }
 
 // Function to upload a file
-export const uploadFile = async ({ bucketname, file }: UploadFile): Promise<any> => {
+export const uploadFile = async ({ bucketname, file, userId }: UploadFile): Promise<any> => {
   try {
     const formData = new FormData()
     formData.append('file', file)
-    const response = await api.post<UploadFileResponse>(`/${fileUrlPrefix}/${bucketname}`, formData, {
+    
+    const url = userId 
+      ? `${fileUrlPrefix}/${bucketname}?userId=${userId}`
+      : `${fileUrlPrefix}/${bucketname}`
+    
+    const response = await api.post<UploadFileResponse>(url, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     })
     return response.data
   } catch (error: any) {
-    console.error('Failed to upload file:', error)
+    console.error('Ошибка при загрузке файла:', error)
     return { message: undefined, error: error }
   }
 }
 
-// Function to move a file
-export const moveFile = async ({ bucketname, targetBucket, filename }: MoveFile): Promise<any> => {
+// Function to move file to new bucket
+export const moveFile = async ({ sourceBucket, targetBucket, filename }: MoveFile): Promise<any> => {
   try {
-    const response = await api.post<any>(`/${moveFileUrlPrefix}/${bucketname}/${filename}`, {
-      targetBucket,
+    const response = await api.post<any>(`${moveFileUrlPrefix}/${sourceBucket}/${filename}`, {
+      targetBucket: targetBucket,
     })
     return response.data
   } catch (error: any) {
-    console.error('Failed to move file:', error)
+    console.error('Ошибка при перемещении файла:', error)
     return { message: undefined, error: error }
   }
 }
 
-// Function to move a file
-export const renameFile = async ({ bucketname, filename, newFilename }: RenameFile): Promise<any> => {
+// Function to rename file
+export const renameFile = async ({ bucketname, oldFileName, newFileName }: RenameFile): Promise<any> => {
   try {
-    const response = await api.post<any>(`/${renameFileUrlPrefix}/${bucketname}/${filename}`, {
-      newFilename: newFilename,
+    const response = await api.post<any>(`${renameFileUrlPrefix}/${bucketname}/${oldFileName}`, {
+      newFilename: newFileName,
     })
     return response.data
   } catch (error: any) {
-    console.error('Failed to move file:', error)
+    console.error('Ошибка при переименовании файла:', error)
     return { message: undefined, error: error }
   }
 }
 
 // Function to delete a file by bucket and file name
-export const deleteFileByBucketAndName = async ({ bucketname, filename }: DeleteFileByBucketAndName): Promise<any> => {
+export const deleteFileByBucketAndName = async ({ bucketname, filename, userId }: DeleteFileByBucketAndName): Promise<any> => {
   try {
-    const response = await api.delete<any>(`/${fileUrlPrefix}/${bucketname}/${filename}`)
+    const url = userId 
+      ? `${fileUrlPrefix}/${bucketname}/${filename}?userId=${userId}`
+      : `${fileUrlPrefix}/${bucketname}/${filename}`
+      
+    const response = await api.delete<any>(url)
     return response.data
   } catch (error: any) {
-    console.error('Failed to delete file:', error)
+    console.error('Ошибка при удалении файла:', error)
     return { message: undefined, error: error }
   }
 }

@@ -1,15 +1,15 @@
 'use client'
 
 import { ReactNode, useEffect } from 'react'
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@shared/ui'
 
 import { getSessionUser } from '@entities/session/user'
 import { User } from '@entities/user'
-import { SideBar } from '@widgets/sidebar'
 import { useUserStore } from '@entities/user'
 import { ById } from '@src/shared/api'
 import Cookies from 'js-cookie'
 import { Header } from '@src/widgets/header'
+import { ViewModeProvider } from '@src/shared/context/viewModeContext'
+import { useTheme } from '@src/shared/context/themeContext'
 
 interface Props {
   children: ReactNode
@@ -19,6 +19,8 @@ const MainLayout = ({ children }: Props) => {
   const { user, addUser } = useUserStore()
   const userID = Cookies.get('userId')
   const token = Cookies.get('token')
+  const { theme } = useTheme()
+  const isDark = theme === 'dark'
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -38,18 +40,22 @@ const MainLayout = ({ children }: Props) => {
   }, [addUser])
 
   return (
-    <ResizablePanelGroup direction="horizontal" className="min-h-screen rounded-lg border w-full">
-      <ResizablePanel defaultSize={15}>{user ? <SideBar user={user} /> : null}</ResizablePanel>
-      <ResizableHandle withHandle />
-      <ResizablePanel defaultSize={85}>
-        <ResizablePanelGroup direction="vertical">
-          <ResizablePanel defaultSize={7} className="flex justify-start">
-            <Header className="text-7xl font-bold text-center shadow-lg ml-5" />
-          </ResizablePanel>
-          <ResizablePanel defaultSize={93}>{children}</ResizablePanel>
-        </ResizablePanelGroup>
-      </ResizablePanel>
-    </ResizablePanelGroup>
+    <ViewModeProvider>
+      <div className={`flex flex-col h-screen ${isDark 
+        ? 'bg-gradient-to-b from-[#0A0F1A] to-[#111827]' 
+        : 'bg-gradient-to-b from-gray-50 to-white'
+      } w-full overflow-hidden theme-transition`}>
+        <div className="sticky top-0 z-30 w-full">
+          <Header />
+        </div>
+        <main className={`flex-1 overflow-y-auto ${isDark 
+          ? 'bg-gradient-to-b from-[#0A0F1A] to-[#111827]' 
+          : 'bg-gradient-to-b from-gray-50 to-white'
+        } w-full theme-transition`}>
+          {children}
+        </main>
+      </div>
+    </ViewModeProvider>
   )
 }
 

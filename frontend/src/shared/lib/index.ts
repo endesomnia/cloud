@@ -1,4 +1,5 @@
 export * from './utils'
 export * from './format-date'
+export * from './format-size'
 export * from './isAuthUser'
 export * from './isSuccessResp'

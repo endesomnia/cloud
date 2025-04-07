@@ -4,4 +4,6 @@ export const routes = {
   startUp: '/',
   user: '/user',
   buckets: '/buckets',
+  starred: '/starred',
+  shared: '/shared',
 }

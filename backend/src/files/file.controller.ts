@@ -8,11 +8,12 @@ import {
   Res,
   UploadedFile,
   UseInterceptors,
+  Query,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { FileService } from './file.service';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiBody } from '@nestjs/swagger';
+import { ApiBody, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { MoveFileDto, RenameFileDto } from './dto/dto';
 import { log } from 'console';
 
@@ -20,44 +21,48 @@ import { log } from 'console';
 export class FileController {
   constructor(private readonly fileService: FileService) {}
 
-  @Get(':bucketname')
-  async getFilesByBucket(
+  @Get(':bucketname/:filename')
+  @ApiParam({ name: 'bucketname', description: 'Name of your bucket' })
+  @ApiParam({ name: 'filename', description: 'Name of your file' })
+  @ApiQuery({ name: 'userId', description: 'ID пользователя для статистики', required: false })
+  async getFile(
     @Param('bucketname') bucketname: string,
+    @Param('filename') filename: string,
+    @Query('userId') userId: string,
     @Res() res: Response,
   ) {
     try {
-      const files = await this.fileService.getFilesByBucket(bucketname);
-      res.json(files);
+      const fileStream = await this.fileService.getFile(bucketname, filename, userId);
+      const headers = {
+        'Content-Disposition': `attachment; filename=${filename}`,
+      };
+      res.writeHead(200, headers);
+      fileStream.pipe(res);
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      res.status(500).send({ error: error.message });
     }
   }
 
-  @Get(':bucketname/:filename')
-  async getFileByBucketAndName(
-    @Param('bucketname') bucketname: string,
-    @Param('filename') filename: string,
-    @Res() res: Response,
-  ) {
-    try {
-      const fileStream = await this.fileService.getFile(bucketname, filename);
-      fileStream.pipe(res);
-    } catch (error) {
-      res.status(500).send(`Error downloading file: ${error.message}`);
-    }
+  @Get(':bucketname')
+  @ApiParam({ name: 'bucketname', description: 'Name of your bucket' })
+  getFiles(@Param('bucketname') bucketname: string) {
+    return this.fileService.getFilesByBucket(bucketname);
   }
 
   @Post(':bucketname')
+  @ApiParam({ name: 'bucketname', description: 'Name of your bucket' })
+  @ApiQuery({ name: 'userId', description: 'ID пользователя для статистики', required: false })
   @UseInterceptors(FileInterceptor('file'))
   async uploadFile(
     @UploadedFile() file: Express.Multer.File,
     @Param('bucketname') bucketname: string,
+    @Query('userId') userId: string,
   ) {
     if (!file) {
       throw new Error('File is required');
     }
     try {
-      const result = await this.fileService.uploadFile(bucketname, file);
+      const result = await this.fileService.uploadFile(bucketname, file, userId);
       return result;
     } catch (error) {
       return { error: error };
@@ -65,63 +70,65 @@ export class FileController {
   }
 
   @Post('/move/:bucketname/:filename')
+  @ApiParam({ name: 'bucketname', description: 'Name of your current bucket' })
+  @ApiParam({ name: 'filename', description: 'Name of your file to move' })
   @ApiBody({ type: MoveFileDto })
   async moveFile(
     @Param('bucketname') bucketname: string,
     @Param('filename') filename: string,
-    @Body('targetBucket') targetBucket: string,
-    @Res() res: Response,
+    @Body() moveFileDto: MoveFileDto,
   ) {
-    if (!bucketname || !targetBucket || !filename) {
-      res.status(500).json({
-        error:
-          'missing one of 3 required argument: oldbucket, targetbucket and filename',
-      });
+    if (!bucketname || !moveFileDto.targetBucket || !filename) {
+      throw new Error('Missing one of 3 required arguments: oldbucket, targetbucket and filename');
     }
     try {
       const result = await this.fileService.moveFile(
         bucketname,
-        targetBucket,
+        moveFileDto.targetBucket,
         filename,
       );
-      res.json(result);
+      return result;
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      return { error: error.message };
     }
   }
 
   @Post('/rename/:bucketname/:filename')
+  @ApiParam({ name: 'bucketname', description: 'Name of your bucket' })
+  @ApiParam({ name: 'filename', description: 'Name of your file to rename' })
   @ApiBody({ type: RenameFileDto })
   async renameFile(
     @Param('bucketname') bucketname: string,
     @Param('filename') filename: string,
-    @Body('newFilename') newFilename: string,
-    @Res() res: Response,
+    @Body() renameFileDto: RenameFileDto,
   ) {
-    log(bucketname, filename, newFilename);
+    log(bucketname, filename, renameFileDto.newFilename);
     try {
       const result = await this.fileService.renameFile(
         bucketname,
         filename,
-        newFilename,
+        renameFileDto.newFilename,
       );
-      res.json(result);
+      return result;
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      return { error: error.message };
     }
   }
 
   @Delete(':bucketname/:filename')
-  async deleteFileByBucketAndName(
+  @ApiParam({ name: 'bucketname', description: 'Name of your bucket' })
+  @ApiParam({ name: 'filename', description: 'Name of your file to delete' })
+  @ApiQuery({ name: 'userId', description: 'ID пользователя для статистики', required: false })
+  async deleteFile(
     @Param('bucketname') bucketname: string,
     @Param('filename') filename: string,
-    @Res() res: Response,
+    @Query('userId') userId: string,
   ) {
     try {
-      const response = await this.fileService.deleteFile(bucketname, filename);
-      res.json(response);
+      const response = await this.fileService.deleteFile(bucketname, filename, userId);
+      return response;
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      return { error: error.message };
     }
   }
 }

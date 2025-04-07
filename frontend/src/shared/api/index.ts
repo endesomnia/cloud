@@ -1,3 +1,6 @@
 export * from './file'
 export * from './bucket'
 export * from './auth'
+export * from './starred'
+export * from './shared'
+export * from './users'

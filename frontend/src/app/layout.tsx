@@ -2,8 +2,9 @@ import type { Metadata } from 'next'
 import { Inter as FontSans } from 'next/font/google'
 import { cn } from '@shared/lib'
 import './globals.css'
-import { ThemeProvider } from './_providers'
 import { Toaster } from '@src/shared/ui'
+import { ThemeProvider } from '@src/shared/context/themeContext'
+import { LanguageProvider } from '@src/shared/context/languageContext'
 
 const fontSans = FontSans({
   subsets: ['latin'],
@@ -21,10 +22,12 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
-      <body className={cn(' bg-background font-sans antialiased', fontSans.variable)}>
-        <ThemeProvider defaultTheme="system" attribute="class" enableSystem disableTransitionOnChange>
-          {children}
+    <html lang="en" suppressHydrationWarning>
+      <body className={cn('font-sans antialiased', fontSans.variable)}>
+        <ThemeProvider>
+          <LanguageProvider>
+            {children}
+          </LanguageProvider>
           <Toaster />
         </ThemeProvider>
       </body>
