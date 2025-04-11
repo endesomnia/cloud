@@ -4,15 +4,38 @@ import { useRouter } from 'next/navigation'
 import { Box, Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuPortal, DropdownMenuTrigger } from '@shared/ui'
 import { listBucketsWithSize, BucketWithSize } from '@src/shared/api'
 import { routes } from '@src/shared/constant'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { BucketDeleteButton } from '@src/features/bucket/delete'
 import { BucketCreateButton, BucketCreateForm } from '@src/features/bucket/create'
 import { formatDate, formatFileSize } from '@src/shared/lib'
-import { SlidersHorizontal, ArrowDownUp, Sparkles, FolderOpen, Clock, CloudOff, LayoutGrid, List, CheckCircle, X, ChevronDown, Check } from 'lucide-react'
+import { 
+  SlidersHorizontal, 
+  ArrowDownUp, 
+  Sparkles, 
+  FolderOpen, 
+  Clock, 
+  CloudOff, 
+  LayoutGrid, 
+  List, 
+  CheckCircle, 
+  X, 
+  ChevronDown, 
+  Check,
+  Star, 
+  StarOff 
+} from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useViewMode } from '@src/shared/context/viewModeContext'
 import { useTheme } from '@src/shared/context/themeContext'
 import { useLanguage } from '@src/shared/context/languageContext'
+import { 
+  getStarredItems, 
+  addStarredItem, 
+  removeStarredItem, 
+  StarredItem as ApiStarredItem 
+} from '@src/shared/api/starred'
+import { useUserStore } from '@entities/user'
+import { toast } from 'sonner'
 
 type SortOption = 'name-asc' | 'name-desc' | 'date-asc' | 'date-desc' | 'size-asc' | 'size-desc';
 type FilterOption = 'all' | 'empty' | 'non-empty';
@@ -29,34 +52,61 @@ const Page = () => {
   const [showSortDropdown, setShowSortDropdown] = useState(false)
   const filterDropdownRef = useRef<HTMLDivElement>(null)
   const sortDropdownRef = useRef<HTMLDivElement>(null)
+  const [starredItems, setStarredItems] = useState<Map<string, ApiStarredItem>>(new Map());
   
   const { bucketsPageView, setBucketsPageView, isMounted } = useViewMode()
   const router = useRouter()
   const { theme, isMounted: isThemeMounted } = useTheme();
   const isDark = isThemeMounted && theme === 'dark';
   const { t } = useLanguage();
+  const { user } = useUserStore();
+
+  const fetchData = useCallback(async () => {
+    if (!user?.id) {
+      setIsLoading(false);
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const [bucketsData, starredData] = await Promise.all([
+        listBucketsWithSize(),
+        getStarredItems({ userId: user.id })
+      ]);
+
+      if (Array.isArray(bucketsData)) {
+        setBuckets(bucketsData);
+      } else {
+        console.error('Expected bucketsData to be an array, received:', bucketsData);
+        setBuckets([]);
+      }
+
+      if (Array.isArray(starredData)) {
+        const starredMap = new Map<string, ApiStarredItem>();
+        starredData.forEach(item => {
+          if (item.type === 'folder') {
+            starredMap.set(item.bucketName, item);
+          }
+        });
+        setStarredItems(starredMap);
+      } else {
+        setStarredItems(new Map());
+      }
+
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      setBuckets([]);
+      setStarredItems(new Map());
+      toast.error(t('error_loading_data'));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user?.id, t]);
 
   useEffect(() => {
-    const fetchBuckets = async () => {
-      setIsLoading(true)
-      try {
-        const bucketsData = await listBucketsWithSize()
-        if (Array.isArray(bucketsData)) {
-          setBuckets(bucketsData)
-        } else {
-          console.error('Expected bucketsData to be an array, received:', bucketsData)
-          setBuckets([])
-        }
-      } catch (error) {
-        console.error('Error fetching buckets:', error)
-        setBuckets([])
-      } finally {
-        setIsLoading(false)
-      }
+    if (user?.id) {
+      fetchData();
     }
-
-    fetchBuckets()
-  }, [refetchIndex])
+  }, [refetchIndex, user?.id, fetchData]);
 
   useEffect(() => {
     let result = [...buckets];
@@ -121,6 +171,61 @@ const Page = () => {
   const redirectTo = (url: string) => {
     router.push(url)
   }
+
+  const isBucketStarred = useCallback((bucketName: string) => {
+    return starredItems.has(bucketName);
+  }, [starredItems]);
+
+  const toggleStar = useCallback(async (bucketName: string) => {
+    if (!user?.id) {
+      toast.error(t('auth_required'));
+      return;
+    }
+
+    const isStarred = isBucketStarred(bucketName);
+    const starredItem = starredItems.get(bucketName);
+
+    const optimisticStarredItems = new Map(starredItems);
+    if (isStarred && starredItem) {
+      optimisticStarredItems.delete(bucketName);
+    } else {
+      const tempStarredItem: ApiStarredItem = {
+        id: 'temp-' + Date.now(),
+        userId: user.id,
+        bucketName: bucketName,
+        fileName: bucketName,
+        type: 'folder',
+        createdAt: new Date().toISOString(),
+      };
+      optimisticStarredItems.set(bucketName, tempStarredItem);
+    }
+    setStarredItems(optimisticStarredItems);
+
+    try {
+      if (isStarred && starredItem) {
+        const success = await removeStarredItem({ id: starredItem.id, userId: user.id });
+        if (!success) {
+          throw new Error(t('error_removing_from_starred'));
+        }
+        toast.success(t('removed_from_starred'));
+      } else {
+        const newItem = await addStarredItem({
+          userId: user.id,
+          bucketName: bucketName,
+          fileName: bucketName,
+          type: 'folder',
+        });
+        if (!newItem) {
+          throw new Error(t('error_adding_to_starred'));
+        }
+        setStarredItems(prev => new Map(prev).set(bucketName, newItem));
+        toast.success(t('added_to_starred'));
+      }
+    } catch (error: any) {      
+      toast.error(error.message || t('error_updating_starred'));
+      setStarredItems(starredItems);
+    }
+  }, [user?.id, starredItems, isBucketStarred, t, fetchData]);
 
   const getSortLabel = (option: SortOption): string => {
     switch (option) {
@@ -405,7 +510,22 @@ const Page = () => {
                           </div>
                         </div>
                         
-                        <BucketDeleteButton bucketName={bucket.name} setRefetch={setRefetchIndex}></BucketDeleteButton>
+                        <div className="flex items-center space-x-1 z-20">
+                          <button
+                            onClick={(e) => { 
+                              e.stopPropagation();
+                              toggleStar(bucket.name); 
+                            }}
+                            className={`p-2 rounded-full transition-all duration-300 ${isDark 
+                              ? 'text-gray-400 hover:text-yellow-400 hover:bg-gray-700' 
+                              : 'text-gray-500 hover:text-yellow-500 hover:bg-gray-100'
+                            } ${isBucketStarred(bucket.name) ? (isDark ? 'text-yellow-400' : 'text-yellow-500') : ''}`}
+                            title={isBucketStarred(bucket.name) ? t('remove_from_starred') : t('add_to_starred')}
+                          >
+                            {isBucketStarred(bucket.name) ? <StarOff size={18} /> : <Star size={18} />}
+                          </button>
+                          <BucketDeleteButton bucketName={bucket.name} setRefetch={setRefetchIndex}></BucketDeleteButton>
+                        </div>
                       </div>
                       
                       <Button
@@ -514,7 +634,20 @@ const Page = () => {
                         </span>
                       </div>
                       
-                      <div className="col-span-1 md:col-span-1 flex items-center justify-end">
+                      <div className="col-span-1 md:col-span-1 flex items-center justify-end space-x-1">
+                        <button
+                          onClick={(e) => { 
+                            e.stopPropagation();
+                            toggleStar(bucket.name);
+                          }}
+                          className={`p-2 rounded-full transition-all duration-300 ${isDark 
+                            ? 'text-gray-400 hover:text-yellow-400 hover:bg-gray-700' 
+                            : 'text-gray-500 hover:text-yellow-500 hover:bg-gray-100'
+                          } ${isBucketStarred(bucket.name) ? (isDark ? 'text-yellow-400' : 'text-yellow-500') : ''}`}
+                          title={isBucketStarred(bucket.name) ? t('remove_from_starred') : t('add_to_starred')}
+                        >
+                          {isBucketStarred(bucket.name) ? <StarOff size={16} /> : <Star size={16} />}
+                        </button>
                         <BucketDeleteButton 
                           bucketName={bucket.name} 
                           setRefetch={setRefetchIndex} 

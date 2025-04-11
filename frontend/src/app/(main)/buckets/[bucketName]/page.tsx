@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { getFilesByBucket } from '@src/shared/api'
 import { formatDate, formatFileSize } from '@src/shared/lib'
@@ -19,7 +19,9 @@ import {
   Search,
   X,
   ChevronDown,
-  Check
+  Check,
+  Star,
+  StarOff
 } from 'lucide-react'
 import { Box } from '@shared/ui'
 import { routes } from '@shared/constant'
@@ -32,6 +34,14 @@ import { FileMoveButton, FileMoveForm } from '@src/features/file/move'
 import { FileDeleteButton, FileDeleteForm } from '@src/features/file/delete/ui'
 import { useTheme } from '@src/shared/context/themeContext'
 import { useLanguage } from '@src/shared/context/languageContext'
+import { 
+  getStarredItems, 
+  addStarredItem, 
+  removeStarredItem, 
+  StarredItem as ApiStarredItem 
+} from '@src/shared/api/starred'
+import { useUserStore } from '@entities/user'
+import { toast } from 'sonner'
 
 interface Props {
   params: { bucketName: string }
@@ -60,34 +70,62 @@ const Page = ({ params }: Props) => {
   const [showSortDropdown, setShowSortDropdown] = useState(false)
   const filterDropdownRef = useRef<HTMLDivElement>(null)
   const sortDropdownRef = useRef<HTMLDivElement>(null)
+  const [starredItems, setStarredItems] = useState<Map<string, ApiStarredItem>>(new Map());
   
   const { bucketFilesPageView, setBucketFilesPageView, isMounted } = useViewMode()
   const router = useRouter()
   const { theme } = useTheme()
   const isDark = theme === 'dark'
   const { t } = useLanguage()
+  const { user } = useUserStore();
 
-  const fetchBuckets = async () => {
-    setIsLoading(true)
-    try {
-      const filesObjs = await getFilesByBucket({ bucketname: params.bucketName })
-      if (Array.isArray(filesObjs)) {
-        setFiles(filesObjs)
-      } else {
-        console.error('Expected bucketsData to be an array, received:', filesObjs)
-        setFiles([])
-      }
-    } catch (error) {
-      console.error('Error fetching files:', error)
-      setFiles([])
-    } finally {
-      setIsLoading(false)
+  const fetchData = useCallback(async () => {
+    if (!user?.id) {
+      setIsLoading(false);
+      return;
     }
-  }
+    setIsLoading(true);
+    try {
+      const [filesData, starredData] = await Promise.all([
+        getFilesByBucket({ bucketname: params.bucketName }),
+        getStarredItems({ userId: user.id })
+      ]);
+
+      if (Array.isArray(filesData)) {
+        setFiles(filesData);
+      } else {
+        console.error('Expected filesData to be an array, received:', filesData);
+        setFiles([]);
+      }
+
+      if (Array.isArray(starredData)) {
+        const starredMap = new Map<string, ApiStarredItem>();
+        starredData.forEach(item => {
+          if (item.bucketName === params.bucketName) {
+             starredMap.set(`${item.bucketName}/${item.fileName}`, item);
+          }
+        });
+        setStarredItems(starredMap);
+      } else {
+        setStarredItems(new Map());
+      }
+
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      setFiles([]);
+      setStarredItems(new Map());
+      toast.error(t('error_loading_data'));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user?.id, params.bucketName, t]);
 
   useEffect(() => {
-    fetchBuckets()
-  }, [refetchIndex])
+    if (user?.id) {
+      fetchData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refetchIndex, user?.id, fetchData]);
 
   useEffect(() => {
     let result = [...files];
@@ -157,6 +195,63 @@ const Page = ({ params }: Props) => {
     setRefetchIndex(prev => prev + 1)
   }
   
+  const isFileStarred = useCallback((fileName: string) => {
+    const key = `${params.bucketName}/${fileName}`;
+    return starredItems.has(key);
+  }, [starredItems, params.bucketName]);
+
+  const toggleStar = useCallback(async (fileName: string) => {
+    if (!user?.id) {
+      toast.error(t('auth_required'));
+      return;
+    }
+
+    const key = `${params.bucketName}/${fileName}`;
+    const isStarred = isFileStarred(fileName);
+    const starredItem = starredItems.get(key);
+
+    const optimisticStarredItems = new Map(starredItems);
+    if (isStarred && starredItem) {
+      optimisticStarredItems.delete(key);
+    } else {
+      const tempStarredItem: ApiStarredItem = {
+        id: 'temp-' + Date.now(),
+        userId: user.id,
+        bucketName: params.bucketName,
+        fileName: fileName,
+        type: 'file',
+        createdAt: new Date().toISOString(),
+      };
+      optimisticStarredItems.set(key, tempStarredItem);
+    }
+    setStarredItems(optimisticStarredItems);
+
+    try {
+      if (isStarred && starredItem) {
+        const success = await removeStarredItem({ id: starredItem.id, userId: user.id });
+        if (!success) {
+          throw new Error(t('error_removing_from_starred'));
+        }
+        toast.success(t('removed_from_starred'));
+      } else {
+        const newItem = await addStarredItem({
+          userId: user.id,
+          bucketName: params.bucketName,
+          fileName: fileName,
+          type: 'file',
+        });
+        if (!newItem) {
+          throw new Error(t('error_adding_to_starred'));
+        }
+        setStarredItems(prev => new Map(prev).set(key, newItem));
+        toast.success(t('added_to_starred'));
+      }
+    } catch (error: any) {
+      toast.error(error.message || t('error_updating_starred'));
+      setStarredItems(starredItems);
+    }
+  }, [user?.id, starredItems, params.bucketName, isFileStarred, t]);
+
   const getSortLabel = (option: SortOption): string => {
     switch (option) {
       case 'name-asc': return t('name_asc');
@@ -419,7 +514,7 @@ const Page = ({ params }: Props) => {
                 ? 'bg-gradient-to-r from-[#3B82F6] to-[#60A5FA] hover:from-[#2563EB] hover:to-[#3B82F6]' 
                 : 'bg-gradient-to-r from-[#2563EB] to-[#3B82F6] hover:from-[#1D4ED8] hover:to-[#2563EB]'
               } text-white h-11 px-5 rounded-lg text-sm font-medium transition-all duration-300 shadow-md shadow-blue-500/20 flex items-center group theme-transition`}/>
-              <FileUploadForm bucketName={params.bucketName} setRefetch={setRefetch} onUploadComplete={fetchBuckets} />
+              <FileUploadForm bucketName={params.bucketName} setRefetch={setRefetch} onUploadComplete={fetchData} />
             </div>
           </div>
 
@@ -476,6 +571,19 @@ const Page = ({ params }: Props) => {
                         </div>
                         
                         <div className="flex items-center flex-wrap gap-2 justify-end pl-2">
+                          <button
+                            onClick={(e) => { 
+                              e.stopPropagation();
+                              toggleStar(file.name);
+                            }}
+                            className={`p-2 rounded-full transition-all duration-300 ${isDark 
+                              ? 'text-gray-400 hover:text-yellow-400 hover:bg-gray-700' 
+                              : 'text-gray-500 hover:text-yellow-500 hover:bg-gray-100'
+                            } ${isFileStarred(file.name) ? (isDark ? 'text-yellow-400' : 'text-yellow-500') : ''}`}
+                            title={isFileStarred(file.name) ? t('remove_from_starred') : t('add_to_starred')}
+                          >
+                            {isFileStarred(file.name) ? <StarOff size={18} /> : <Star size={18} />}
+                          </button>
                           <FileRenameForm bucketName={params.bucketName} filename={file.name} setRefetch={setRefetch} />
                           <FileDownloadButton bucketName={params.bucketName} filename={file.name} setRefetch={setRefetch} />
                           <FileMoveButton />
@@ -565,6 +673,19 @@ const Page = ({ params }: Props) => {
                       </div>
                       
                       <div className="col-span-2 md:col-span-2 flex items-center justify-end space-x-2">
+                        <button
+                          onClick={(e) => { 
+                            e.stopPropagation();
+                            toggleStar(file.name);
+                          }}
+                          className={`p-2 rounded-full transition-all duration-300 ${isDark 
+                            ? 'text-gray-400 hover:text-yellow-400 hover:bg-gray-700' 
+                            : 'text-gray-500 hover:text-yellow-500 hover:bg-gray-100'
+                          } ${isFileStarred(file.name) ? (isDark ? 'text-yellow-400' : 'text-yellow-500') : ''}`}
+                          title={isFileStarred(file.name) ? t('remove_from_starred') : t('add_to_starred')}
+                        >
+                          {isFileStarred(file.name) ? <StarOff size={16} /> : <Star size={16} />}
+                        </button>
                         <FileDownloadButton 
                           bucketName={params.bucketName} 
                           filename={file.name} 
