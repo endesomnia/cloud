@@ -1,7 +1,7 @@
 import { Box, ToggleGroup } from '@src/shared/ui'
 import Link from 'next/link'
 import { routes } from '@src/shared/constant'
-import { User, LogOut, Folder, Star, Cloud, Share2 } from 'lucide-react'
+import { User, LogOut, Folder, Star, Cloud } from 'lucide-react'
 import { DoLogout } from '@src/actions'
 import { useRouter, usePathname } from 'next/navigation'
 import Cookies from 'js-cookie'
@@ -98,20 +98,18 @@ export const Header = ({ className }: Props) => {
         <div className={`flex items-center rounded-xl ${isDark 
           ? 'bg-gradient-to-r from-[#1E293B]/30 to-[#1E293B]/50' 
           : 'bg-gradient-to-r from-gray-100/60 to-gray-100/80'
-        } backdrop-blur-sm p-1.5 relative transition-all duration-500 shadow-sm ${isDark ? 'shadow-black/5' : 'shadow-gray-300/30'} mx-4 max-w-xl w-full`}>
+        } backdrop-blur-sm p-1.5 relative transition-all duration-500 shadow-sm ${isDark ? 'shadow-black/5' : 'shadow-gray-300/30'} mx-4 max-w-lg w-full`}>
           <div className={`absolute ${isActive(routes.buckets) 
             ? 'left-1.5 translate-x-0' 
-            : isActive(routes.starred) 
-              ? 'left-1/3 translate-x-0.5' 
-              : 'left-[calc(66.67%-1px)]'
-          } top-1.5 bottom-1.5 w-[calc(33.33%-3px)] rounded-lg ${isDark
+            : 'left-[calc(50%-1px)]'
+          } top-1.5 bottom-1.5 w-[calc(50%-3px)] rounded-lg ${isDark
             ? 'bg-gradient-to-br from-[#1E293B]/90 to-[#1E293B]/70'
             : 'bg-gradient-to-br from-white to-white/90'
           } shadow-md ${isDark ? 'shadow-black/10' : 'shadow-gray-200/70'} transition-all duration-400 ease-in-out z-0 transform`}></div>
 
           <Link 
             href={routes.buckets} 
-            className={`flex items-center relative justify-center py-2.5 px-4 rounded-lg z-10 group transition-all duration-300 w-1/3 ${
+            className={`flex items-center relative justify-center py-2.5 px-4 rounded-lg z-10 group transition-all duration-300 w-1/2 ${
               isActive(routes.buckets) ? 'text-current' : isDark ? 'text-gray-400' : 'text-gray-500'
             }`}
           >
@@ -136,7 +134,7 @@ export const Header = ({ className }: Props) => {
           
           <Link 
             href={routes.starred} 
-            className={`flex items-center relative justify-center py-2.5 px-4 rounded-lg z-10 group transition-all duration-300 w-1/3 ${
+            className={`flex items-center relative justify-center py-2.5 px-4 rounded-lg z-10 group transition-all duration-300 w-1/2 ${
               isActive(routes.starred) ? 'text-current' : isDark ? 'text-gray-400' : 'text-gray-500'
             }`}
           >
@@ -154,31 +152,6 @@ export const Header = ({ className }: Props) => {
             
             {isActive(routes.starred) && (
               <span className="absolute -bottom-0.5 left-1/2 transform -translate-x-1/2 w-6 h-0.5 rounded-full bg-amber-400 opacity-80"></span>
-            )}
-          </Link>
-          
-          <Link 
-            href={routes.shared} 
-            className={`flex items-center relative justify-center py-2.5 px-4 rounded-lg z-10 group transition-all duration-300 w-1/3 ${
-              isActive(routes.shared) ? 'text-current' : isDark ? 'text-gray-400' : 'text-gray-500'
-            }`}
-          >
-            <Share2 size={22} className={`${isActive(routes.shared)
-              ? isDark ? 'text-indigo-400' : 'text-indigo-500'
-              : isDark ? 'text-gray-400 group-hover:text-indigo-400' : 'text-gray-500 group-hover:text-indigo-500'
-            } transition-colors duration-300 group-hover:scale-115 group-active:scale-95 mr-1.5`} />
-            <span className={`hidden md:inline font-medium ${
-              isActive(routes.shared)
-                ? isDark ? 'text-white' : 'text-gray-900'
-                : isDark ? 'text-gray-400 group-hover:text-white' : 'text-gray-500 group-hover:text-gray-900'
-            } transition-colors duration-300`}>
-              {t("shared_with")}
-            </span>
-            
-            {isActive(routes.shared) && (
-              <span className={`absolute -bottom-0.5 left-1/2 transform -translate-x-1/2 w-6 h-0.5 rounded-full ${
-                isDark ? 'bg-indigo-400' : 'bg-indigo-500'
-              } opacity-80`}></span>
             )}
           </Link>
         </div>
