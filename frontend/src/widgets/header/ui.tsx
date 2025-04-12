@@ -24,10 +24,11 @@ export const Header = ({ className }: Props) => {
     return pathname.startsWith(path)
   }
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     Cookies.remove('token')
     Cookies.remove('userId')
-    DoLogout()
+    await DoLogout()
+    push(routes.login)
   }
 
   const handleProfile = () => {
