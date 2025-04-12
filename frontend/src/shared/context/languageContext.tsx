@@ -67,7 +67,7 @@ const translations = {
     
     // File upload
     'select_file_to_upload': 'Select a file to upload',
-    'missing_bucket_name': 'Missing bucket name',
+    'missing_bucket_name': 'Missing folder name',
     'error_uploading_file': 'Error uploading file',
     'file_uploaded': 'File uploaded!',
     'upload_file_to': 'Upload file to',
@@ -103,13 +103,13 @@ const translations = {
     'loading': 'Loading...',
     'move_file_button': 'Move file',
     'file_already_in_this_bucket': 'File already in this folder',
-    'please_specify_bucket_name': 'Please specify a bucket name',
+    'please_specify_bucket_name': 'Please specify a folder name',
     
     // Buckets page
-    'your_buckets': 'Your Buckets',
+    'your_buckets': 'Your Folders',
     'loading_buckets_page': 'Loading folders...',
-    'buckets_not_found': 'Buckets not found',
-    'create_first_bucket': 'Create your first bucket to organize files',
+    'buckets_not_found': 'Folders not found',
+    'create_first_bucket': 'Create your first folder to organize files',
     'clear_search': 'Clear search',
     'reset_filters': 'Reset filters',
     'sort_by': 'Sort by',
@@ -135,7 +135,7 @@ const translations = {
     'status': 'Status',
     'creation_date': 'Creation date',
     'actions': 'Actions',
-    'no_matching_buckets': 'No matching buckets found',
+    'no_matching_buckets': 'No matching folders found',
     'go_to_files': 'Go to Files',
     'delete_bucket': 'Delete Folder',
 
@@ -186,7 +186,7 @@ const translations = {
     'medium_files': 'Medium files',
     'small_files': 'Small files',
     'no_matching_files': 'No matching files found',
-    'back_to_buckets': 'Back to buckets',
+    'back_to_buckets': 'Back to folders',
     'type': 'Type',
     'size': 'Size',
     'last_modified': 'Last modified',
@@ -303,6 +303,7 @@ const translations = {
     'sharing': 'Sharing',
     'shared_with': 'Shared with me',
     'preferences': 'Preferences',
+    'storage': 'Storage',
   },
   ru: {
     // Главная страница
@@ -377,6 +378,9 @@ const translations = {
     'file_moved': 'Файл перемещен!',
     'file_moved_description': 'Файл "{name}" был перемещен в "{bucket}"',
     'loading': 'Загрузка...',
+    'move_file_button': 'Переместить файл',
+    'file_already_in_this_bucket': 'Файл уже в этой папке',
+    'please_specify_bucket_name': 'Пожалуйста, укажите название папки',
     
     // Страница папок
     'your_buckets': 'Ваши папки',
@@ -411,7 +415,7 @@ const translations = {
     'no_matching_buckets': 'По вашему запросу ничего не найдено',
     'go_to_files': 'Перейти к файлам',
     'delete_bucket': 'Удалить папку',
-    
+
     // Страница избранного
     'starred_items': 'Избранные элементы',
     'loading_starred': 'Загрузка избранных элементов...',
@@ -578,6 +582,7 @@ const translations = {
     'sharing': 'Общее',
     'shared_with': 'Общий доступ',
     'preferences': 'Предпочтения',
+    'storage': 'Хранилище',
   }
 };
 

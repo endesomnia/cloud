@@ -105,7 +105,7 @@ export const SideBar = ({ user }: { user: User | UserAuth | null | any }) => {
               <Upload size={16} className="text-white" />
             </div>
             <div className="ml-3">
-              <h4 className={`${isDark ? 'text-white' : 'text-gray-900'} font-medium text-sm theme-transition`}>Storage</h4>
+              <h4 className={`${isDark ? 'text-white' : 'text-gray-900'} font-medium text-sm theme-transition`}>{t('storage')}</h4>
               <p className={`${isDark ? 'text-gray-400' : 'text-gray-500'} text-xs theme-transition`}>2.5 GB of 10 GB</p>
             </div>
           </div>
