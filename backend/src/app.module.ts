@@ -7,12 +7,12 @@ import { BucketModule } from './bucket/bucket.module';
 import { FileModule } from './files/file.module';
 import { StarredModule } from './starred/starred.module';
 import { SharedModule } from './shared/shared.module';
-import { PrismaService } from './prisma/prisma.service';
 import { UsersModule } from './users/users.module';
+import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
-  imports: [MinioModule, AuthModule, BucketModule, FileModule, StarredModule, SharedModule, UsersModule],
+  imports: [PrismaModule, MinioModule, AuthModule, BucketModule, FileModule, StarredModule, SharedModule, UsersModule],
   controllers: [AppController],
-  providers: [AppService, PrismaService],
+  providers: [AppService],
 })
 export class AppModule {}
