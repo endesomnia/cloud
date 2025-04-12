@@ -52,29 +52,11 @@ export const Header = ({ className }: Props) => {
             } rounded-lg -z-10 group-hover:scale-125 transition-transform duration-500 theme-transition`}></div>
             <svg 
               className={`w-10 h-10 ${isDark ? 'text-[#3B82F6]' : 'text-[#2563EB]'} mr-3 drop-shadow-md transform group-hover:rotate-6 transition-all duration-500 theme-transition`}
-              viewBox="0 0 64 64" 
-              fill="none" 
+              viewBox="0 0 24 24" 
+              fill="currentColor" 
               xmlns="http://www.w3.org/2000/svg"
             >
-              <path 
-                d="M48 42c4.4 0 8-3.6 8-8s-3.6-8-8-8c-.3 0-.6 0-.9.1C45.7 20.5 40.3 16 34 16c-8.8 0-16 7.2-16 16v1c-3.3 0-6 2.7-6 6s2.7 6 6 6h30z" 
-                fill="url(#header_gradient_1)"
-              />
-              <path 
-                d="M24 28c3.3 0 6-2.7 6-6s-2.7-6-6-6c-.2 0-.4 0-.6.1C22.3 12.4 18.2 9 13.5 9 7.2 9 2 14.2 2 20.5v.5C-.5 22 -1 24.2 -1 26.5 -1 30.1 1.9 33 5.5 33H24v-5z" 
-                fill="url(#header_gradient_2)"
-                opacity="0.8"
-              />
-              <defs>
-                <linearGradient id="header_gradient_1" x1="24" y1="16" x2="56" y2="42" gradientUnits="userSpaceOnUse">
-                  <stop stopColor={isDark ? "#3B82F6" : "#2563EB"} />
-                  <stop offset="1" stopColor={isDark ? "#2563EB" : "#1D4ED8"} />
-                </linearGradient>
-                <linearGradient id="header_gradient_2" x1="2" y1="9" x2="24" y2="33" gradientUnits="userSpaceOnUse">
-                  <stop stopColor={isDark ? "#60A5FA" : "#3B82F6"} />
-                  <stop offset="1" stopColor={isDark ? "#3B82F6" : "#2563EB"} />
-                </linearGradient>
-              </defs>
+              <path d="M19.4 14.7C19.8 14.3 20 13.7 20 13c0-1.7-1.4-3-3-3h-.5C16.2 8.1 14.3 7 12 7c-2.8 0-5.1 2.1-5.5 4.8H6c-2.2 0-4 1.8-4 4s1.8 4 4 4h13c1.1 0 2-.9 2-2 0-.6-.2-1.1-.6-1.5-.1-.1-.1-.3 0-.4z"/>
             </svg>
             <div className="flex items-center">
               <span className={`text-2xl font-bold bg-clip-text text-transparent ${isDark 
