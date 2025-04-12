@@ -1,46 +1,66 @@
 ## Description
 
-## Project setup
+Backend service for JulCloud storage.
+
+## Project setup with Bun
+
+1.  Navigate to the backend directory (if not already there).
+2.  Copy the example environment file:
+    ```bash
+    cp .env.example .env
+    ```
+    **Important:** Fill in your actual environment variables in the `.env` file.
+3.  Install dependencies:
+    ```bash
+    bun install
+    ```
+
+## Running the project with Bun
 
 ```bash
-$ npm install
+# Development mode (with hot-reloading)
+bun run start:dev
+
+# Production mode
+bun run start:prod
+
+# Simple start (no watch)
+bun run start 
 ```
 
-## Compile and run the project
+## Prisma Database Commands (using Bun)
 
 ```bash
-# development
-$ npm run start
+# Apply migrations during development (creates DB if not exists, applies migrations)
+bun prisma migrate dev 
 
-# watch mode
-$ npm run start:dev
+# Apply migrations in production or CI/CD environment
+bun prisma migrate deploy
 
-# production mode
-$ npm run start:prod
+# Reset database (WARNING: deletes all data and migrations)
+bun prisma migrate reset 
 ```
 
+## Docker Instructions (Alternative)
 
-### only once
+If you prefer using Docker:
+
+1.  Ensure Docker is installed and running.
+2.  Copy the example environment file (if you haven't already):
+    ```bash
+    cp .env.example .env
+    ```
+    Make sure the `.env` file is correctly configured, especially database connection details if not using the default Docker setup.
+3.  Run the Docker Compose command from the **project root directory**:
+    ```bash
+    docker compose up -d
+    ```
+    (Or use `docker-compose.build.yml` if you need to build the image: `docker compose -f ../docker-compose.build.yml up -d --build`)
 
 ```bash
-npx prisma migrate dev --name main
+bun prisma migrate dev --name main
 ```
 
 ```bash
-npx prisma migrate deploy
-```
-
-```bash
-npx prisma migrate reset # delete all data and migration
-```
-
-### Up
-
-1) 
-```bash
-mv .env.example .env
-```
-2)
-```bash
-docker compose up -d
+bun prisma migrate deploy
 ```
