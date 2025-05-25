@@ -9,21 +9,24 @@ import { MINIO_CONNECTION } from 'nestjs-minio';
 export class BucketService {
   constructor(@Inject(MINIO_CONNECTION) private readonly minioClient: Client) {}
 
-  async listBuckets() {
-    return await this.minioClient.listBuckets();
+  async listBuckets(userId?: string) {
+    const allBuckets = await this.minioClient.listBuckets();
+    if (!userId) return allBuckets;
+    return allBuckets.filter((bucket: any) => bucket.name.startsWith(userId + '_'));
   }
 
-  async createBucket(bucketname: string, access: 'public' | 'private') {
+  async createBucket(bucketname: string, access: 'public' | 'private', userId?: string) {
     try {
-      await this.minioClient.makeBucket(bucketname);
+      const realBucketName = userId ? `${userId}_${bucketname}` : bucketname;
+      await this.minioClient.makeBucket(realBucketName);
 
       const policy = access === 'public' ? 'public-read' : 'none';
-      const generatedPolicy = this.generateBucketPolicy(bucketname, policy);
+      const generatedPolicy = this.generateBucketPolicy(realBucketName, policy);
 
-      await this.minioClient.setBucketPolicy(bucketname, generatedPolicy);
+      await this.minioClient.setBucketPolicy(realBucketName, generatedPolicy);
       return {
         message: 'bucket created successfully',
-        bucketName: bucketname,
+        bucketName: realBucketName,
         error: undefined,
       };
     } catch (error) {
@@ -33,9 +36,10 @@ export class BucketService {
     }
   }
 
-  async deleteBucket(bucketname: string) {
+  async deleteBucket(bucketname: string, userId?: string) {
     try {
-      await this.minioClient.removeBucket(bucketname);
+      const realBucketName = userId ? `${userId}_${bucketname}` : bucketname;
+      await this.minioClient.removeBucket(realBucketName);
       return { message: 'bucket remove successfully', error: undefined };
     } catch (error) {
       return { message: undefined, error: error };

@@ -5,6 +5,7 @@ import { deleteBucket } from '@src/shared/api'
 import { toast } from 'sonner'
 import { SetStateAction, Dispatch } from 'react'
 import { useLanguage } from '@src/shared/context/languageContext'
+import { useSession } from 'next-auth/react'
 
 interface Props {
   bucketName: string
@@ -22,10 +23,10 @@ export const BucketDeleteButton = ({
   iconOnly = false 
 }: Props) => {
   const { t } = useLanguage()
+  const { data: session } = useSession()
 
-  const handleDeleteBucket = async (bucketname: string) => {
-    try {
-      const response = await deleteBucket({ bucketname })
+  const handleDeleteBucket = async (bucketname: string) => {    try {
+      const response = await deleteBucket({ bucketname, userId: session?.user?.id ?? '' })
       if (response.error) {
         toast(response.error.message)
       } else {

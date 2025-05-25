@@ -51,6 +51,8 @@ const translations = {
     'or': 'Or',
     'continue_with_github': 'Continue with GitHub',
     'this_field_required': 'This field is required',
+    'user_created_successfully': 'User created successfully',
+    'user_already_exists': 'User already exists',
     
     // Theme and Language
     'dark_theme': 'Enable dark theme',
@@ -630,4 +632,4 @@ export const LanguageProvider = ({ children }: LanguageProviderProps) => {
       {children}
     </LanguageContext.Provider>
   );
-}; 
+};

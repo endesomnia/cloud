@@ -45,8 +45,9 @@ export class FileController {
 
   @Get(':bucketname')
   @ApiParam({ name: 'bucketname', description: 'Name of your bucket' })
-  getFiles(@Param('bucketname') bucketname: string) {
-    return this.fileService.getFilesByBucket(bucketname);
+  @ApiQuery({ name: 'userId', description: 'ID пользователя для фильтрации', required: false })
+  getFiles(@Param('bucketname') bucketname: string, @Query('userId') userId: string) {
+    return this.fileService.getFilesByBucket(bucketname, userId);
   }
 
   @Post(':bucketname')

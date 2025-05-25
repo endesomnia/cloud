@@ -117,6 +117,14 @@ const StarredPage = () => {
   const { theme, isMounted: isThemeMounted } = useTheme();
   const isDark = isThemeMounted && theme === 'dark';
   const { t } = useLanguage();
+
+  const handleItemClick = (item: StarredItem) => {
+    if (item.name) { 
+        router.push(`${routes.buckets}/${item.name}`);
+    } else {
+        console.error("Path is missing for starred item, cannot navigate:", item);
+    }
+  };
   
   useEffect(() => {
     const fetchStarredItems = async () => {
@@ -531,9 +539,7 @@ const StarredPage = () => {
                               : `${isDark ? 'hover:text-[#3B82F6]' : 'hover:text-blue-600'}`
                           } theme-transition`}
                         >
-                          <h3 className="font-semibold text-xl truncate">
-                            {item.name}
-                          </h3>
+                      <div className={`w-full truncate ${isDark ? 'text-gray-300' : 'text-gray-700'} cursor-pointer`} onClick={() => handleItemClick(item)}>{item.name}</div>
                         </Button>
                       </div>
                       
@@ -612,9 +618,7 @@ const StarredPage = () => {
                             ? <Folder size={24} className="drop-shadow-md" /> 
                             : <File size={24} className="drop-shadow-md" />}
                         </div>
-                        <div className={`truncate font-medium ${isDark ? 'text-white' : 'text-gray-800'} theme-transition`}>
-                          {item.name}
-                        </div>
+                        <div className={`truncate ${isDark ? 'text-gray-300' : 'text-gray-700'} cursor-pointer`} onClick={() => handleItemClick(item)}>{item.name}</div>
                       </div>
                       
                       <div className="col-span-3 md:col-span-3 flex items-center justify-center">

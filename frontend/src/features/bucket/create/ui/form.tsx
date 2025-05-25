@@ -15,6 +15,7 @@ import { useBucketFormModel } from '../model'
 import { FolderPlus, Lock, Check, Sparkles, Server, Globe } from 'lucide-react'
 import { useTheme } from '@src/shared/context/themeContext'
 import { useLanguage } from '@src/shared/context/languageContext'
+import { useSession } from 'next-auth/react'
 
 interface Props {
   setRefetch: Dispatch<SetStateAction<number>>
@@ -62,8 +63,11 @@ export const BucketCreateForm = ({ setRefetch }: Props) => {
       return;
     }
 
+    const { data: session } = useSession();
+    const userId = session?.user?.id!!;
+    
     try {
-      const response = await createBucket({ bucketname: trimmedName, accessM: accessMode });
+      const response = await createBucket({ bucketname: trimmedName, accessM: accessMode, userId });
       
       if (response.error) {
         toast.error(t('bucket_creation_error'), {

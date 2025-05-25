@@ -11,6 +11,16 @@ export class AuthService {
   ) {}
 
   async createUser(data: { name: string; email: string; password: string }) {
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email: data.email },
+    });
+
+    if (existingUser) {
+      return {
+        status: '409', // Conflict
+        message: 'user_already_exists',
+      };
+    }
     const salt = await bcrypt.genSalt();
     const hashedPassword = await bcrypt.hash(data.password, salt);
 
@@ -24,7 +34,7 @@ export class AuthService {
     const token = this.jwtService.sign({ userId: user.id, email: user.email });
 
     return {
-      message: 'User successfully created',
+      message: 'user_created_successfully',
       user,
       token,
     };

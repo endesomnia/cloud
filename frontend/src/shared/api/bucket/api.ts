@@ -17,9 +17,11 @@ export interface BucketWithSize extends Bucket {
 export interface CreateBucket {
   bucketname: string
   accessM: 'public' | 'private'
+  userId: string
 }
 export interface DeleteBucket {
   bucketname: string
+  userId: string
 }
 
 export interface CreateBucketResponse {
@@ -34,9 +36,9 @@ export interface DeleteBucketResponse {
 }
 
 // Function to fetch buckets
-export const listBuckets = async (): Promise<Bucket[]> => {
+export const listBuckets = async (userId: string): Promise<Bucket[]> => {
   try {
-    const response = await api.get<Bucket[]>(`${bucketUrlPrefix}`)
+    const response = await api.post<Bucket[]>(`${bucketUrlPrefix}/list`, { userId })
     return response.data
   } catch (error) {
     console.error('Ошибка при получении корзин:', error)
@@ -45,16 +47,13 @@ export const listBuckets = async (): Promise<Bucket[]> => {
 }
 
 // Function to fetch buckets with size information
-export const listBucketsWithSize = async (): Promise<BucketWithSize[]> => {
+export const listBucketsWithSize = async (userId: string): Promise<BucketWithSize[]> => {
   try {
-    // Получаем список папок
-    const bucketsResponse = await api.get<Bucket[]>(`${bucketUrlPrefix}`);
+    const bucketsResponse = await api.post<Bucket[]>(`${bucketUrlPrefix}/list`, { userId });
     const buckets = bucketsResponse.data;
-    
-    // Для каждой папки получаем информацию о размере
     const bucketsWithSize = await Promise.all(
       buckets.map(async (bucket) => {
-        const bucketSize = await getBucketSize(bucket.name);
+        const bucketSize = await getBucketSize(bucket.name, userId);
         return {
           ...bucket,
           size: bucketSize.totalSize,
@@ -62,7 +61,6 @@ export const listBucketsWithSize = async (): Promise<BucketWithSize[]> => {
         };
       })
     );
-    
     return bucketsWithSize;
   } catch (error) {
     console.error('Ошибка при получении корзин с размерами:', error);
@@ -71,13 +69,10 @@ export const listBucketsWithSize = async (): Promise<BucketWithSize[]> => {
 };
 
 // Function to get bucket size
-export const getBucketSize = async (bucketName: string): Promise<{ totalSize: number, filesCount: number }> => {
+export const getBucketSize = async (bucketName: string, userId: string): Promise<{ totalSize: number, filesCount: number }> => {
   try {
-    const files = await getFilesByBucket({ bucketname: bucketName });
-    
-    // Считаем общий размер всех файлов в байтах
+    const files = await getFilesByBucket({ bucketname: bucketName, userId });
     const totalSize = files.reduce((acc, file) => acc + file.size, 0);
-    
     return {
       totalSize,
       filesCount: files.length
@@ -92,11 +87,12 @@ export const getBucketSize = async (bucketName: string): Promise<{ totalSize: nu
 };
 
 // Function to create a bucket
-export const createBucket = async ({ bucketname, accessM }: CreateBucket): Promise<CreateBucketResponse> => {
+export const createBucket = async ({ bucketname, accessM, userId }: CreateBucket): Promise<CreateBucketResponse> => {
   try {
     const response = await api.post<CreateBucketResponse>(`${bucketUrlPrefix}/${bucketname}`, {
       bucketname: bucketname,
       access: accessM,
+      userId: userId,
     })
     return response.data
   } catch (error: any) {
@@ -106,9 +102,9 @@ export const createBucket = async ({ bucketname, accessM }: CreateBucket): Promi
 }
 
 // Function to delete a bucket
-export const deleteBucket = async ({ bucketname }: DeleteBucket): Promise<any> => {
+export const deleteBucket = async ({ bucketname, userId }: DeleteBucket): Promise<any> => {
   try {
-    const response = await api.delete<any>(`${bucketUrlPrefix}/${bucketname}`)
+    const response = await api.delete<any>(`${bucketUrlPrefix}/${bucketname}`, { data: { userId } })
     return response.data
   } catch (error: any) {
     console.error('Ошибка при удалении корзины:', error)

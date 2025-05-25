@@ -25,12 +25,16 @@ export class FileService {
   }
 
   // get files list in bucket
-  async getFilesByBucket(bucketname: string): Promise<BucketItem[]> {
+  async getFilesByBucket(bucketname: string, userId?: string): Promise<BucketItem[]> {
     return new Promise((resolve, reject) => {
       const objects: BucketItem[] = [];
       const stream = this.minioClient.listObjectsV2(bucketname);
 
-      stream.on('data', (obj: BucketItem) => objects.push(obj));
+      stream.on('data', (obj: BucketItem) => {
+        if (!userId || obj?.name?.startsWith(userId + '_')) {
+          objects.push(obj);
+        }
+      });
       stream.on('end', () => resolve(objects));
       stream.on('error', (error) =>
         reject(new Error(`Error fetching file: ${error.message}`)),
@@ -47,25 +51,24 @@ export class FileService {
     const metaData = {
       'Content-Type': file.mimetype,
       'Content-Length': file.size,
+      'userId': userId || '',
     };
-
     try {
+      const fileName = userId ? `${userId}_${file.originalname}` : file.originalname;
       await this.minioClient.putObject(
         bucketName,
-        file.originalname,
+        fileName,
         file.buffer,
         file.size,
         metaData,
       );
-      
       // Обновляем статистику пользователя, если указан userId
       if (userId) {
         await this.usersService.incrementFileUploaded(userId, file.size, file.mimetype);
       }
-      
       return {
         message: 'File uploaded successfully',
-        fileName: file.originalname,
+        fileName: fileName,
         placedOn: bucketName,
       };
     } catch (error) {

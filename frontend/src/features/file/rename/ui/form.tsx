@@ -8,6 +8,7 @@ import { SubmitHandler } from 'react-hook-form'
 import { toast } from 'sonner'
 import { useFileRenameFormModel } from '../model'
 import { Tag, Check, FileText } from 'lucide-react'
+import { useSession } from 'next-auth/react'
 import { useTheme } from '@src/shared/context/themeContext'
 import { useLanguage } from '@src/shared/context/languageContext'
 
@@ -30,6 +31,7 @@ export const FileRenameForm = ({ setRefetch, bucketName, filename }: Props) => {
   const { theme } = useTheme()
   const isDark = theme === 'dark'
   const { t } = useLanguage()
+  const { data: session } = useSession()
 
   useEffect(() => {
     setFname(filename)
@@ -56,6 +58,7 @@ export const FileRenameForm = ({ setRefetch, bucketName, filename }: Props) => {
         bucketname: bucketName,
         oldFileName: filename,
         newFileName: data.newFilename.trim(),
+        userId: session?.user?.id ?? '',
       })
       
       if (response.error) {

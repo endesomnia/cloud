@@ -3,7 +3,6 @@
 import { Box, Button, Input, ThemeToggle } from '@src/shared/ui'
 import { createUser, UserCreate } from '@src/shared/api'
 import { SubmitHandler } from 'react-hook-form'
-import { DoLogin } from '@src/actions'
 import { useRouter } from 'next/navigation'
 import { routes } from '@src/shared/constant'
 import { useUserCreateFormModel } from './model'
@@ -38,13 +37,13 @@ export const RegisterForm = () => {
       Cookies.remove('authjs.callback-url')
       Cookies.remove('authjs.csrf-token')
 
-      toast(response.message)
+      toast(t(response.message))
 
       reset()
 
       router.push(routes.buckets)
     } else {
-      toast(response.message)
+      toast(t(response.message))
     }
   }
 

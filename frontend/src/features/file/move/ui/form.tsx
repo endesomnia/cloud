@@ -6,6 +6,7 @@ import { SubmitHandler } from 'react-hook-form'
 import { toast } from 'sonner'
 import { useFileMoveFormModel } from '../model'
 import { ArrowRightLeft, Check, FolderTree, AlertCircle, X } from 'lucide-react'
+import { useSession } from 'next-auth/react'
 import { useTheme } from '@src/shared/context/themeContext'
 import { useLanguage } from '@src/shared/context/languageContext'
 
@@ -34,14 +35,16 @@ export const FileMoveForm = ({ setRefetch, bucketName, fileName }: Props) => {
   const { theme } = useTheme()
   const isDark = theme === 'dark'
   const { t } = useLanguage()
+  const { data: session } = useSession()
   
   const modalIsOpen = isOpen && type === 'fileMove'
   
   useEffect(() => {
     if (modalIsOpen) {
       const fetchBuckets = async () => {
+        if (!session?.user?.id) return;
         try {
-          const bucketsData = await listBuckets()
+          const bucketsData = await listBuckets(session.user.id)
           const filteredData = bucketsData.filter(bucket => bucket.name !== bucketName)
           setBuckets(filteredData)
         } catch (error) {
@@ -51,7 +54,7 @@ export const FileMoveForm = ({ setRefetch, bucketName, fileName }: Props) => {
       
       fetchBuckets()
     }
-  }, [modalIsOpen, bucketName])
+  }, [modalIsOpen, bucketName, session?.user?.id])
   
   useEffect(() => {
     if (inputValue) {
@@ -127,6 +130,7 @@ export const FileMoveForm = ({ setRefetch, bucketName, fileName }: Props) => {
         sourceBucket: bucketName,
         targetBucket: targetBucketName,
         filename: fileName,
+        userId: session?.user?.id ?? '',
       })
       
       if (res.error) {

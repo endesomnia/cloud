@@ -1,7 +1,7 @@
-import { Controller, Get, Post, Delete, Body, Param, Res, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Param, Res, HttpStatus, UseFilters } from '@nestjs/common';
 import { Response } from 'express';
 import { SharedService } from './shared.service';
-import { ApiBody, ApiParam, ApiTags } from '@nestjs/swagger';
+import { ApiBody, ApiTags } from '@nestjs/swagger';
 
 @ApiTags('shared')
 @Controller('shared')

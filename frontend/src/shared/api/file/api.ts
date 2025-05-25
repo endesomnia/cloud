@@ -24,29 +24,32 @@ export interface UploadFile {
 export interface DeleteFileByBucketAndName {
   bucketname: string
   filename: string
-  userId?: string
+  userId: string
 }
 
 export interface GetFilesByBucket {
-  bucketname: string
+  bucketname: string, 
+  userId?: string
 }
 
 export interface MoveFile {
   sourceBucket: string
   targetBucket: string
   filename: string
+  userId: string
 }
 
 export interface RenameFile {
   bucketname: string
   oldFileName: string
   newFileName: string
+  userId: string
 }
 
 // Function to get files by bucket name
-export const getFilesByBucket = async ({ bucketname }: GetFilesByBucket): Promise<FileObj[]> => {
+export const getFilesByBucket = async ({ bucketname, userId }: GetFilesByBucket): Promise<FileObj[]> => {
   try {
-    const response = await api.get<FileObj[]>(`${fileUrlPrefix}/${bucketname}`)
+    const response = await api.get<FileObj[]>(`${fileUrlPrefix}/${bucketname}?userId=${userId}`)
     return response.data
   } catch (error: any) {
     console.error('Ошибка при получении файлов:', error)
@@ -102,9 +105,9 @@ export const uploadFile = async ({ bucketname, file, userId }: UploadFile): Prom
 }
 
 // Function to move file to new bucket
-export const moveFile = async ({ sourceBucket, targetBucket, filename }: MoveFile): Promise<any> => {
+export const moveFile = async ({ sourceBucket, targetBucket, filename, userId }: MoveFile): Promise<any> => {
   try {
-    const response = await api.post<any>(`${moveFileUrlPrefix}/${sourceBucket}/${filename}`, {
+    const response = await api.post<any>(`${moveFileUrlPrefix}/${sourceBucket}/${filename}?userId=${userId}`, {
       targetBucket: targetBucket,
     })
     return response.data
@@ -115,9 +118,9 @@ export const moveFile = async ({ sourceBucket, targetBucket, filename }: MoveFil
 }
 
 // Function to rename file
-export const renameFile = async ({ bucketname, oldFileName, newFileName }: RenameFile): Promise<any> => {
+export const renameFile = async ({ bucketname, oldFileName, newFileName, userId }: RenameFile): Promise<any> => {
   try {
-    const response = await api.post<any>(`${renameFileUrlPrefix}/${bucketname}/${oldFileName}`, {
+    const response = await api.post<any>(`${renameFileUrlPrefix}/${bucketname}/${oldFileName}?userId=${userId}`, {
       newFilename: newFileName,
     })
     return response.data

@@ -36,6 +36,7 @@ import {
 } from '@src/shared/api/starred'
 import { useUserStore } from '@entities/user'
 import { toast } from 'sonner'
+import { useSession } from 'next-auth/react'
 
 type SortOption = 'name-asc' | 'name-desc' | 'date-asc' | 'date-desc' | 'size-asc' | 'size-desc';
 type FilterOption = 'all' | 'empty' | 'non-empty';
@@ -60,17 +61,20 @@ const Page = () => {
   const isDark = isThemeMounted && theme === 'dark';
   const { t } = useLanguage();
   const { user } = useUserStore();
+  const { data: session } = useSession();
+  const userId = session?.user?.id;
 
   const fetchData = useCallback(async () => {
-    if (!user?.id) {
+    const effectiveUserId = userId || user?.id;
+    if (!effectiveUserId) {
       setIsLoading(false);
       return;
     }
     setIsLoading(true);
     try {
       const [bucketsData, starredData] = await Promise.all([
-        listBucketsWithSize(),
-        getStarredItems({ userId: user.id })
+        listBucketsWithSize(effectiveUserId),
+        getStarredItems({ userId: effectiveUserId })
       ]);
 
       if (Array.isArray(bucketsData)) {
@@ -100,13 +104,14 @@ const Page = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id, t]);
+  }, [user?.id, userId, t]);
 
   useEffect(() => {
-    if (user?.id) {
+    const effectiveUserId = userId || user?.id;
+    if (effectiveUserId) {
       fetchData();
     }
-  }, [refetchIndex, user?.id, fetchData]);
+  }, [refetchIndex, user?.id, userId, fetchData]);
 
   useEffect(() => {
     let result = [...buckets];
