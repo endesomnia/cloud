@@ -529,8 +529,8 @@ const Page = () => {
                           >
                             {isBucketStarred(bucket.name) ? <StarOff size={18} /> : <Star size={18} />}
                           </button>
-                          <BucketDeleteButton bucketName={bucket.name} setRefetch={setRefetchIndex} iconOnly={true} />
-                          <BucketDeleteForm bucketName={bucket.name} setRefetch={setRefetchIndex} />
+                          <BucketDeleteButton bucketName={getDisplayBucketName(bucket.name, effectiveUserId)} setRefetch={setRefetchIndex} iconOnly={true} />
+                          <BucketDeleteForm bucketName={getDisplayBucketName(bucket.name, effectiveUserId)} setRefetch={setRefetchIndex} />
                         </div>
                       </div>
                       
@@ -655,7 +655,7 @@ const Page = () => {
                           {isBucketStarred(bucket.name) ? <StarOff size={16} /> : <Star size={16} />}
                         </button>
                         <BucketDeleteButton 
-                          bucketName={bucket.name} 
+                          bucketName={getDisplayBucketName(bucket.name, effectiveUserId)} 
                           setRefetch={setRefetchIndex} 
                           classes={`p-2 rounded-full ${isDark 
                             ? 'text-gray-300 hover:text-red-300 hover:bg-[#111827]/70' 
@@ -663,7 +663,7 @@ const Page = () => {
                           } transition-all duration-300 theme-transition`}
                           iconOnly={true}
                         />
-                        <BucketDeleteForm bucketName={bucket.name} setRefetch={setRefetchIndex} />
+                        <BucketDeleteForm bucketName={getDisplayBucketName(bucket.name, effectiveUserId)} setRefetch={setRefetchIndex} />
                       </div>
                     </motion.div>
                   ))}

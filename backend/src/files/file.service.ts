@@ -28,7 +28,7 @@ export class FileService {
   async getFilesByBucket(bucketname: string, userId?: string): Promise<BucketItem[]> {
     return new Promise((resolve, reject) => {
       const objects: BucketItem[] = [];
-      const stream = this.minioClient.listObjectsV2(bucketname);
+      const stream = this.minioClient.listObjectsV2(userId && !bucketname.startsWith(userId + '-') ? `${userId}-${bucketname}` : bucketname);
 
       stream.on('data', (obj: BucketItem) => {
         if (!userId || obj?.name?.startsWith(userId + '_')) {
@@ -82,7 +82,8 @@ export class FileService {
       // Если передан userId, нужно получить информацию о файле для обновления статистики
       if (userId) {
         try {
-          const stat = await this.minioClient.statObject(bucketname, filename);
+          console.log(bucketname, filename);
+          const stat = await this.minioClient.statObject(userId ? `${userId}-${bucketname}` : bucketname, filename);
           await this.usersService.incrementFileDeleted(
             userId,
             stat.size,
@@ -94,7 +95,7 @@ export class FileService {
         }
       }
       
-      await this.minioClient.removeObject(bucketname, filename);
+      await this.minioClient.removeObject(userId ? `${userId}-${bucketname}` : bucketname, filename);
       return { message: 'File remove successfully' };
     } catch (error) {
       throw new Error(`Error remove file: ${error.message}`);

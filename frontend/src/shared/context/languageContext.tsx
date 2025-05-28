@@ -53,6 +53,7 @@ const translations = {
     'this_field_required': 'This field is required',
     'user_created_successfully': 'User created successfully',
     'user_already_exists': 'User already exists',
+    'User verified': 'User verified',
     
     // Theme and Language
     'dark_theme': 'Enable dark theme',
@@ -290,6 +291,7 @@ const translations = {
     'bucket_creation_error': 'Error creating folder',
     'bucket_created': 'Folder created!',
     'bucket_created_description': 'Folder "{name}" created successfully',
+    'bucket_deleted_successfully': 'Folder deleted successfully',
     'bucket_name_empty': 'Folder name cannot be empty',
     'created': 'Created!',
     'creating': 'Creating...',
@@ -343,6 +345,7 @@ const translations = {
     'continue_with_github': 'Продолжить с GitHub',
     'this_field_required': 'Это поле обязательно',
     'user_created_successfully': 'Пользователь успешно создан',
+    'User verified': 'Пользователь подтверждён',
     
     // Тема и язык
     'dark_theme': 'Включить темную тему',
@@ -578,6 +581,7 @@ const translations = {
     'bucket_creation_error': 'Ошибка при создании папки',
     'bucket_created': 'Папка создана!',
     'bucket_created_description': 'Папка "{name}" успешно создана',
+    'bucket_deleted_successfully': 'Папка успешно удалена',
     'bucket_name_empty': 'Название папки не может быть пустым',
     'created': 'Создано!',
     'creating': 'Создание...',

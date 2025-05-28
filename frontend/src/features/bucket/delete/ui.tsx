@@ -1,7 +1,7 @@
 import { Trash, AlertTriangle } from 'lucide-react'
 import { cn } from '@src/shared/lib'
 import { Button, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@src/shared/ui'
-import { deleteBucket } from '@src/shared/api'
+import { deleteBucket, getFilesByBucket, deleteFileByBucketAndName } from '@src/shared/api'
 import { toast } from 'sonner'
 import { SetStateAction, Dispatch, useState } from 'react'
 import { useLanguage } from '@src/shared/context/languageContext'
@@ -10,6 +10,7 @@ import { useModalStore } from '@src/shared/modal'
 import { useTheme } from '@src/shared/context/themeContext'
 import { getDisplayBucketName } from '@src/shared/lib/utils'
 import { useUserStore } from '@entities/user'
+import type { FileObj } from '@src/shared/api/file/api'
 
 interface Props {
   bucketName: string
@@ -72,9 +73,35 @@ export const BucketDeleteForm = ({ bucketName, setRefetch }: BucketDeleteFormPro
   const handleDeleteBucket = async () => {
     setLoading(true);
     try {
+      let files: FileObj[] = [];
+      try {
+        files = await getFilesByBucket({ bucketname: bucketName, userId: effectiveUserId });
+      } catch (e: any) {
+        if (e?.message?.includes('bucket does not exist')) {
+          files = [];
+        } else {
+          throw e;
+        }
+      }
+      console.log('Файлы для удаления:', files);
+      for (const file of files) {
+        try {
+          await deleteFileByBucketAndName({
+            bucketname: bucketName,
+            filename: file.name,
+            userId: effectiveUserId
+          });
+          console.log('Удалён файл:', file.name);
+        } catch (e: any) {
+          if (e?.message?.includes('bucket does not exist')) continue;
+          console.error('Ошибка при удалении файла:', file.name, e);
+          throw e;
+        }
+      }
       const response = await deleteBucket({ bucketname: bucketName, userId: effectiveUserId ?? '' });
       if (response.error) {
         toast.error(response.error.message || t('error_deleting_bucket'));
+        console.log('Ошибка при удалении бакета:', response.error);
       } else {
         setSuccess(true);
         toast.success(t('bucket_deleted_successfully'));

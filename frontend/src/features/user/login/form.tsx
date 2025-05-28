@@ -39,13 +39,13 @@ export const LoginForm = () => {
 		Cookies.remove('authjs.callback-url')
 		Cookies.remove('authjs.csrf-token')
 
-		toast(response.message)
+		toast(t(response.message))
 
 		reset()
 
 		router.push(routes.buckets)
     } else {
-      	toast(response.message)
+      	toast(t(response.message))
     }
   }
 
