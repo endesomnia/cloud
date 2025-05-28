@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { getFilesByBucket } from '@src/shared/api'
 import { formatDate, formatFileSize } from '@src/shared/lib'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuPortal, DropdownMenuTrigger } from '@shared/ui'
@@ -79,6 +79,12 @@ const Page = ({ params }: Props) => {
   const { t } = useLanguage()
   const { user } = useUserStore();
   const effectiveUserId = user?.id;
+  const searchParams = useSearchParams();
+  const highlight = searchParams.get('highlight');
+  const [highlightedFile, setHighlightedFile] = useState<string | null>(null);
+  const [hasHighlighted, setHasHighlighted] = useState(false);
+  const fileRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+  const pathname = usePathname();
 
   const fetchData = useCallback(async () => {
     if (!effectiveUserId) {
@@ -192,6 +198,33 @@ const Page = ({ params }: Props) => {
     };
   }, []);
 
+  useEffect(() => {
+    if (highlight && files.some(f => f.name === highlight) && !hasHighlighted) {
+      setHighlightedFile(highlight);
+      setHasHighlighted(true);
+
+      setTimeout(() => {
+        setHighlightedFile(null);
+        const params = new URLSearchParams(Array.from(searchParams.entries()));
+        params.delete('highlight');
+        router.replace(
+          `${pathname}${params.toString() ? `?${params.toString()}` : ''}`,
+          { scroll: false }
+        );
+      }, 3000);
+
+      setTimeout(() => {
+        const ref = fileRefs.current[highlight];
+        if (ref) {
+          ref.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
+    }
+    if (!highlight && hasHighlighted) {
+      setHasHighlighted(false);
+    }
+  }, [highlight, files, router, searchParams, pathname, hasHighlighted]);
+
   const setRefetch = (value: any) => {
     setRefetchIndex(prev => prev + 1)
   }
@@ -280,6 +313,13 @@ const Page = ({ params }: Props) => {
       return bucketFullName.substring(effectiveUserId.length + 1);
     }
     return bucketFullName;
+  };
+
+  const getDisplayFileName = (fullName: string): string => {
+    if (effectiveUserId && fullName.startsWith(effectiveUserId + '_')) {
+      return fullName.substring(effectiveUserId.length + 1);
+    }
+    return fullName;
   };
 
   return (
@@ -548,10 +588,11 @@ const Page = ({ params }: Props) => {
                 {filteredFiles.map((file, index) => (
                   <div 
                     key={index}
+                    ref={el => { fileRefs.current[file.name] = el; }}
                     className={`group ${isDark 
                       ? 'bg-gradient-to-br from-[#1F2937]/90 to-[#1F2937]/70 border-gray-800/60 hover:border-[#3B82F6]/40 hover:shadow-[#3B82F6]/10' 
                       : 'bg-gradient-to-br from-white/90 to-white/70 border-gray-200 hover:border-blue-500/40 hover:shadow-blue-500/10'
-                    } border rounded-xl overflow-hidden hover:shadow-2xl transition-all duration-500 backdrop-blur-sm transform-gpu hover:translate-y-[-5px] relative theme-transition`}
+                    } border rounded-xl overflow-hidden hover:shadow-2xl transition-all duration-500 backdrop-blur-sm transform-gpu hover:translate-y-[-5px] relative theme-transition${highlightedFile && highlightedFile === file.name ? ' ring-4 ring-blue-400/80 z-20' : ''}`}
                     style={{ animationDelay: `${index * 100}ms` }}
                   >
                     <div className={`absolute inset-0 w-full h-full ${isDark 
@@ -606,7 +647,7 @@ const Page = ({ params }: Props) => {
                           ? 'text-white group-hover:text-[#3B82F6]' 
                           : 'text-gray-800 group-hover:text-blue-600'
                         } transition-colors duration-300 theme-transition`}>
-                          {file.name}
+                          {getDisplayFileName(file.name)}
                         </h3>
                         
                         <div className={`space-y-3 text-base ${isDark ? 'text-gray-400' : 'text-gray-500'} theme-transition`}>
@@ -643,13 +684,14 @@ const Page = ({ params }: Props) => {
                   {filteredFiles.map((file, index) => (
                     <motion.div 
                       key={index}
+                      ref={el => { fileRefs.current[file.name] = el; }}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.05 }}
                       className={`grid grid-cols-12 py-4 px-6 ${isDark 
                         ? 'border-b border-gray-800/40 hover:bg-[#1F2937]' 
                         : 'border-b border-gray-200/40 hover:bg-gray-50'
-                      } transition-colors duration-200 relative group theme-transition`}
+                      } transition-colors duration-200 relative group theme-transition${highlightedFile && highlightedFile === file.name ? ' ring-4 ring-blue-400/80 z-20' : ''}`}
                     >
                       <div className="col-span-4 md:col-span-5 flex items-center">
                         <div className={`flex-shrink-0 w-10 h-10 rounded-lg ${isDark 
@@ -662,7 +704,7 @@ const Page = ({ params }: Props) => {
                           ? 'text-white hover:text-[#3B82F6]' 
                           : 'text-gray-800 hover:text-blue-600'
                         } transition-colors duration-300 theme-transition`}>
-                          {file.name}
+                          {getDisplayFileName(file.name)}
                         </div>
                       </div>
                       

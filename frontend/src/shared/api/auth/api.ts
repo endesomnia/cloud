@@ -34,9 +34,10 @@ export interface SuccessResponce {
   token: string
 }
 
-// Function to create a user
-export const createUser = async ({ email, name, password }: UserCreate): Promise<SuccessResponce | ErrorResponse> => {
-  const response = await api.post<SuccessResponce | ErrorResponse>(`/${authUrlPrefix}/register`, {
+export const createUser = async (
+  { email, name, password }: UserCreate
+): Promise<SuccessResponce | ErrorResponse> => {
+  const response = await api.post(`/${authUrlPrefix}/register`, {
     name: name,
     email: email,
     password: password,

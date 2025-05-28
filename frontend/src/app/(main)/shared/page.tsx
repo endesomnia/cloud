@@ -19,7 +19,7 @@ import {
   UserX
 } from 'lucide-react'
 import { motion } from 'framer-motion'
-import { formatDate } from '@src/shared/lib'
+import { formatDate, getDisplayFileName, getDisplayBucketName } from '@src/shared/lib'
 import { useViewMode } from '@src/shared/context/viewModeContext'
 import { getSharedWithUser, getSharedByUser, removeShare, SharedFile } from '@src/shared/api/shared'
 import { useUserStore } from '@src/entities/user/model/user-store'
@@ -27,6 +27,8 @@ import { useTheme } from '@src/shared/context/themeContext'
 
 interface SharedItem extends SharedFile {
   name: string;
+  displayFileName: string;
+  displayBucketName?: string;
   lastModified: Date;
   extension?: string;
   size?: number;
@@ -59,27 +61,37 @@ const SharedPage = () => {
   const { theme } = useTheme();
   const { t } = useLanguage();
   const isDark = theme === 'dark';
+  const effectiveUserId = user?.id;
   
-  const getFileNameAndExtension = (fileName: string): { name: string; extension?: string; type: 'folder' | 'file' } => {
-    if (fileName.endsWith('/')) {
-      return { 
-        name: fileName.substring(0, fileName.length - 1),
-        type: 'folder'
-      };
+  const getProcessedNameAndType = (fullFileName: string, itemBucketName: string, userId?: string): 
+    { name: string; extension?: string; type: 'folder' | 'file'; displayFileName: string; displayBucketName: string } => {
+    
+    let originalName = fullFileName;
+    let itemType: 'folder' | 'file' = 'file';
+
+    if (fullFileName.endsWith('/')) {
+      originalName = fullFileName.substring(0, fullFileName.length - 1);
+      itemType = 'folder';
     }
     
-    const lastDotIndex = fileName.lastIndexOf('.');
-    if (lastDotIndex === -1 || (fileName.startsWith('.') && lastDotIndex === 0)) {
-      return { 
-        name: fileName,
-        type: 'file'
-      };
-    }
+    const lastDotIndex = originalName.lastIndexOf('.');
+    const hasExtension = lastDotIndex !== -1 && !(originalName.startsWith('.') && lastDotIndex === 0);
     
+    const baseName = hasExtension ? originalName.substring(0, lastDotIndex) : originalName;
+    const extension = hasExtension ? originalName.substring(lastDotIndex + 1) : undefined;
+
+    const finalDisplayFileName = itemType === 'folder' 
+      ? getDisplayBucketName(originalName, userId)
+      : getDisplayFileName(originalName, userId);
+
+    const finalDisplayBucketName = getDisplayBucketName(itemBucketName, userId);
+
     return {
-      name: fileName.substring(0, lastDotIndex),
-      extension: fileName.substring(lastDotIndex + 1),
-      type: 'file'
+      name: originalName,
+      extension,
+      type: itemType,
+      displayFileName: finalDisplayFileName,
+      displayBucketName: finalDisplayBucketName
     };
   };
   
@@ -96,14 +108,16 @@ const SharedPage = () => {
         
         const processItems = (items: SharedFile[]): SharedItem[] => {
           return items.map(item => {
-            const { name, extension, type } = getFileNameAndExtension(item.fileName);
+            const { name, extension, type, displayFileName, displayBucketName } = getProcessedNameAndType(item.fileName, item.bucketName, effectiveUserId);
             return {
               ...item,
               name,
+              displayFileName,
+              displayBucketName,
               extension,
               type,
               lastModified: new Date(item.createdAt),
-              size: 0, // Размер файла не предоставляется API, можно добавить в будущем
+              size: 0,
             };
           });
         };
@@ -140,7 +154,8 @@ const SharedPage = () => {
   const displayedItems = activeTab === 'sharedWithMe' ? sharedItems : sharedByMeItems;
   
   const filteredItems = displayedItems.filter(item => 
-    item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.displayFileName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (item.displayBucketName && item.displayBucketName.toLowerCase().includes(searchQuery.toLowerCase())) ||
     (activeTab === 'sharedWithMe' && item.sharedBy?.name && item.sharedBy.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
     (activeTab === 'sharedByMe' && item.sharedTo?.name && item.sharedTo.name.toLowerCase().includes(searchQuery.toLowerCase()))
   );
@@ -364,7 +379,7 @@ const SharedPage = () => {
                         </div>
                         <div className="ml-3 flex-grow">
                           <h3 className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'} mb-1 text-base theme-transition`}>
-                            {item.name}
+                            {item.displayFileName}
                           </h3>
                           <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'} truncate theme-transition`}>
                             {item.type === 'folder' ? t('folder') : (
@@ -406,7 +421,7 @@ const SharedPage = () => {
                         <div className={`${isDark ? 'text-gray-400' : 'text-gray-500'} text-xs col-span-2 mt-2 theme-transition`}>
                           <span className="uppercase font-medium block mb-1">{t('path')}</span>
                           <span className={`${isDark ? 'text-gray-300' : 'text-gray-700'} break-all theme-transition`}>
-                            {`${item.bucketName}/${item.fileName}`}
+                            {`${item.displayBucketName}${item.type === 'file' ? `/${item.displayFileName}` : ''}`}
                           </span>
                         </div>
                       </div>
@@ -455,10 +470,10 @@ const SharedPage = () => {
                         </div>
                         <div>
                           <div className={`truncate font-medium ${isDark ? 'text-white' : 'text-gray-800'} theme-transition`}>
-                            {item.name}
+                            {item.displayFileName}
                           </div>
                           <div className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'} mt-0.5 theme-transition`}>
-                            {item.bucketName}/{item.fileName}
+                            {item.displayBucketName}{item.type === 'file' ? `/${item.displayFileName}` : ''}
                           </div>
                         </div>
                       </div>

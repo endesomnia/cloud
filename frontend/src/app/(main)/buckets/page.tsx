@@ -5,9 +5,10 @@ import { Box, Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, Dropd
 import { listBucketsWithSize, BucketWithSize } from '@src/shared/api'
 import { routes } from '@src/shared/constant'
 import { useEffect, useState, useRef, useCallback } from 'react'
-import { BucketDeleteButton } from '@src/features/bucket/delete'
+import { BucketDeleteButton, BucketDeleteForm } from '@src/features/bucket/delete'
 import { BucketCreateButton, BucketCreateForm } from '@src/features/bucket/create'
 import { formatDate, formatFileSize } from '@src/shared/lib'
+import { getDisplayBucketName } from '@src/shared/lib/utils'
 import { 
   SlidersHorizontal, 
   ArrowDownUp, 
@@ -110,14 +111,14 @@ const Page = () => {
     if (effectiveUserId) {
       fetchData();
     }
-  }, [refetchIndex, storeUser?.id, sessionUserId, fetchData]);
+  }, [refetchIndex, effectiveUserId, fetchData]);
 
   useEffect(() => {
     let result = [...buckets];
     
     if (searchQuery) {
       result = result.filter(bucket => 
-        bucket.name.toLowerCase().includes(searchQuery.toLowerCase())
+        getDisplayBucketName(bucket.name, effectiveUserId).toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
     
@@ -134,10 +135,10 @@ const Page = () => {
     
     switch (sortOption) {
       case 'name-asc':
-        result.sort((a, b) => a.name.localeCompare(b.name));
+        result.sort((a, b) => getDisplayBucketName(a.name, effectiveUserId).localeCompare(getDisplayBucketName(b.name, effectiveUserId)));
         break;
       case 'name-desc':
-        result.sort((a, b) => b.name.localeCompare(a.name));
+        result.sort((a, b) => getDisplayBucketName(b.name, effectiveUserId).localeCompare(getDisplayBucketName(a.name, effectiveUserId)));
         break;
       case 'date-asc':
         result.sort((a, b) => new Date(a.creationDate).getTime() - new Date(b.creationDate).getTime());
@@ -154,7 +155,7 @@ const Page = () => {
     }
     
     setFilteredBuckets(result);
-  }, [buckets, searchQuery, filterOption, sortOption]);
+  }, [buckets, searchQuery, filterOption, sortOption, effectiveUserId]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -179,13 +180,6 @@ const Page = () => {
   const isBucketStarred = useCallback((bucketName: string) => {
     return starredItems.has(bucketName);
   }, [starredItems]);
-
-  const getDisplayBucketName = (bucketFullName: string): string => {
-    if (effectiveUserId && bucketFullName.startsWith(effectiveUserId + '-')) {
-      return bucketFullName.substring(effectiveUserId.length + 1);
-    }
-    return bucketFullName;
-  };
 
   const toggleStar = useCallback(async (bucketName: string) => {
     if (!effectiveUserId) {
@@ -535,7 +529,8 @@ const Page = () => {
                           >
                             {isBucketStarred(bucket.name) ? <StarOff size={18} /> : <Star size={18} />}
                           </button>
-                          <BucketDeleteButton bucketName={bucket.name} setRefetch={setRefetchIndex}></BucketDeleteButton>
+                          <BucketDeleteButton bucketName={bucket.name} setRefetch={setRefetchIndex} iconOnly={true} />
+                          <BucketDeleteForm bucketName={bucket.name} setRefetch={setRefetchIndex} />
                         </div>
                       </div>
                       
@@ -549,7 +544,7 @@ const Page = () => {
                             ? 'group-hover/title:text-[#3B82F6]' 
                             : 'group-hover/title:text-blue-600'
                           } theme-transition`}>
-                            {getDisplayBucketName(bucket.name)}
+                            {getDisplayBucketName(bucket.name, effectiveUserId)}
                           </h3>
                         </div>
                       </Button>
@@ -620,7 +615,7 @@ const Page = () => {
                           } transition-colors duration-300 cursor-pointer theme-transition`}
                           onClick={() => redirectTo(`${routes.buckets}/${bucket.name}`)}
                         >
-                          {getDisplayBucketName(bucket.name)}
+                          {getDisplayBucketName(bucket.name, effectiveUserId)}
                         </div>
                       </div>
                       
@@ -645,7 +640,7 @@ const Page = () => {
                         </span>
                       </div>
                       
-                      <div className="col-span-1 md:col-span-1 flex items-center justify-end space-x-1">
+                      <div className="col-span-1 md:col-span-1 flex items-center justify-end space-x-2">
                         <button
                           onClick={(e) => { 
                             e.stopPropagation();
@@ -668,6 +663,7 @@ const Page = () => {
                           } transition-all duration-300 theme-transition`}
                           iconOnly={true}
                         />
+                        <BucketDeleteForm bucketName={bucket.name} setRefetch={setRefetchIndex} />
                       </div>
                     </motion.div>
                   ))}

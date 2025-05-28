@@ -195,19 +195,25 @@ const Page = () => {
           <h3 className={`text-xl font-semibold ${isDark ? 'text-white' : 'text-gray-900'} theme-transition`}>{t('storage_usage')}</h3>
         </div>
         
+        // Визуализация заполненности хранилища пользователя (прогресс-бар)
         <div className="relative pt-5">
           <div className={`h-2 ${isDark ? 'bg-[#1E293B]' : 'bg-gray-100'} rounded-full overflow-hidden mb-2 theme-transition`}>
             <div 
-              className="h-full bg-gradient-to-r from-[#3B82F6] to-[#60A5FA] rounded-full transition-all duration-1000 ease-out group-hover:animate-pulse"
+              className="h-full bg-gradient-to-r from-[#3B82F6] to-[#60A5FA] rounded-full transition-all 
+              duration-1000 ease-out group-hover:animate-pulse"
               style={{ width: `${(userStats.usedStorage / userStats.totalStorage) * 100}%` }}
             ></div>
           </div>
           <div className="flex justify-between text-sm">
             <span className={`${isDark ? 'text-gray-400' : 'text-gray-500'} theme-transition`}>
-              {t('used_storage')}: <span className={`${isDark ? 'text-white' : 'text-gray-900'} font-medium theme-transition`}>{userStats.usedStorage.toFixed(1)} {t('gb')}</span>
+              {t('used_storage')}: <span 
+              className={`${isDark ? 'text-white' : 'text-gray-900'} font-medium theme-transition`}>
+                {userStats.usedStorage.toFixed(1)} {t('gb')}</span>
             </span>
             <span className={`${isDark ? 'text-gray-400' : 'text-gray-500'} theme-transition`}>
-              {t('total_storage')}: <span className={`${isDark ? 'text-white' : 'text-gray-900'} font-medium theme-transition`}>{userStats.totalStorage} {t('gb')}</span>
+              {t('total_storage')}: <span 
+              className={`${isDark ? 'text-white' : 'text-gray-900'} font-medium theme-transition`}>
+                {userStats.totalStorage} {t('gb')}</span>
             </span>
           </div>
           

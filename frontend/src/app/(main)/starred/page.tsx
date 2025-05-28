@@ -115,6 +115,8 @@ const StarredPage = () => {
     let displayName = apiItem.fileName;
     if (apiItem.type === 'folder' && effectiveUserId && apiItem.fileName.startsWith(effectiveUserId + '-')) {
       displayName = apiItem.fileName.substring(effectiveUserId.length + 1);
+    } else if (apiItem.type === 'file' && effectiveUserId && apiItem.fileName.startsWith(effectiveUserId + '_')) {
+      displayName = apiItem.fileName.substring(effectiveUserId.length + 1);
     }
 
     return {
@@ -134,7 +136,7 @@ const StarredPage = () => {
       router.push(`${routes.buckets}/${item._originalFileName}`);
     } else if (item.type === 'file') {
       if (item._originalBucketName && item._originalFileName) {
-        router.push(`${routes.buckets}/${item._originalBucketName}/${item._originalFileName}`);
+        router.push(`${routes.buckets}/${item._originalBucketName}?highlight=${encodeURIComponent(item._originalFileName)}`);
       } else {
         console.error("Missing original bucket/file name for navigation:", item);
       }

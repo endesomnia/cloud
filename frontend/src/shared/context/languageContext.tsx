@@ -140,6 +140,11 @@ const translations = {
     'no_matching_buckets': 'No matching folders found',
     'go_to_files': 'Go to Files',
     'delete_bucket': 'Delete Folder',
+    'delete_bucket_confirmation_title': 'Delete Folder',
+    'delete_bucket_confirmation_message_p1': 'Are you sure you want to delete the folder',
+    'delete_bucket_confirmation_message_p2': 'All files inside will be permanently deleted.',
+    'error_deleting_bucket': 'Error deleting folder',
+    'deleting': 'Deleting...',
 
     // Starred page
     'starred_items': 'Starred Items',
@@ -294,7 +299,8 @@ const translations = {
     'delete_button': 'Delete',
     'delete_file': 'Delete file',
     'delete_file_confirm': 'Delete file?',
-    'delete_file_confirmation': 'Are you sure you want to delete file',
+    'delete_file_confirmation_p1': 'Are you sure you want to delete the file',
+    'delete_file_confirmation_p2': 'This action cannot be undone.',
     'action_cannot_be_undone': 'This action cannot be undone.',
     'file_deleted': 'File deleted',
     'file_deleted_successfully': 'File successfully deleted',
@@ -336,6 +342,7 @@ const translations = {
     'or': 'Или',
     'continue_with_github': 'Продолжить с GitHub',
     'this_field_required': 'Это поле обязательно',
+    'user_created_successfully': 'Пользователь успешно создан',
     
     // Тема и язык
     'dark_theme': 'Включить темную тему',
@@ -422,6 +429,11 @@ const translations = {
     'no_matching_buckets': 'По вашему запросу ничего не найдено',
     'go_to_files': 'Перейти к файлам',
     'delete_bucket': 'Удалить папку',
+    'delete_bucket_confirmation_title': 'Удалить папку',
+    'delete_bucket_confirmation_message_p1': 'Вы уверены, что хотите удалить папку',
+    'delete_bucket_confirmation_message_p2': 'Все файлы внутри будут удалены безвозвратно.',
+    'error_deleting_bucket': 'Ошибка при удалении папки',
+    'deleting': 'Удаление...',
 
     // Страница избранного
     'starred_items': 'Избранные элементы',
@@ -575,7 +587,8 @@ const translations = {
     'delete_button': 'Удалить',
     'delete_file': 'Удалить файл',
     'delete_file_confirm': 'Удалить файл?',
-    'delete_file_confirmation': 'Вы уверены, что хотите удалить файл',
+    'delete_file_confirmation_p1': 'Вы уверены, что хотите удалить файл',
+    'delete_file_confirmation_p2': 'Это действие нельзя отменить.',
     'action_cannot_be_undone': 'Это действие нельзя отменить.',
     'file_deleted': 'Файл удален',
     'file_deleted_successfully': 'Файл успешно удален',

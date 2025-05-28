@@ -11,6 +11,7 @@ import { Tag, Check, FileText } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { useTheme } from '@src/shared/context/themeContext'
 import { useLanguage } from '@src/shared/context/languageContext'
+import { getDisplayFileName, getDisplayBucketName } from '@src/shared/lib/utils'
 
 export interface fileRenameForm {
   newFilename: string
@@ -32,6 +33,7 @@ export const FileRenameForm = ({ setRefetch, bucketName, filename }: Props) => {
   const isDark = theme === 'dark'
   const { t } = useLanguage()
   const { data: session } = useSession()
+  const effectiveUserId = session?.user?.id
 
   useEffect(() => {
     setFname(filename)
@@ -142,7 +144,9 @@ export const FileRenameForm = ({ setRefetch, bucketName, filename }: Props) => {
                 </DialogTitle>
               </div>
               <p className={`${isDark ? 'text-gray-400' : 'text-gray-500'} text-sm ml-14 mt-1 theme-transition`}>
-                {t('renaming_file_in').replace('{filename}', filename).replace('{bucketName}', bucketName)}
+                {t('renaming_file_in')
+                  .replace('{filename}', getDisplayFileName(filename, effectiveUserId)) 
+                  .replace('{bucketName}', getDisplayBucketName(bucketName, effectiveUserId))}
               </p>
             </div>
             

@@ -9,6 +9,7 @@ import { ArrowRightLeft, Check, FolderTree, AlertCircle, X } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { useTheme } from '@src/shared/context/themeContext'
 import { useLanguage } from '@src/shared/context/languageContext'
+import { getDisplayFileName, getDisplayBucketName } from '@src/shared/lib/utils'
 
 interface FileMoveForm {
   targetBucket: string
@@ -36,6 +37,7 @@ export const FileMoveForm = ({ setRefetch, bucketName, fileName }: Props) => {
   const isDark = theme === 'dark'
   const { t } = useLanguage()
   const { data: session } = useSession()
+  const effectiveUserId = session?.user?.id
   
   const modalIsOpen = isOpen && type === 'fileMove'
   
@@ -208,7 +210,7 @@ export const FileMoveForm = ({ setRefetch, bucketName, fileName }: Props) => {
                 </DialogTitle>
               </div>
               <p className={`${isDark ? 'text-gray-400' : 'text-gray-500'} text-sm ml-14 mt-1 theme-transition`}>
-                {t("move_file_description")} {fileName} {t("from_bucket")} {bucketName}
+                {t("move_file_description")} {getDisplayFileName(fileName, effectiveUserId)} {t("from_bucket")} {getDisplayBucketName(bucketName, effectiveUserId)}
               </p>
             </div>
             

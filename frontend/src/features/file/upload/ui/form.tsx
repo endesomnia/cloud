@@ -9,6 +9,7 @@ import { Upload, FileUp, Check, UploadCloud } from 'lucide-react'
 import { useUserStore } from '@entities/user'
 import { useTheme } from '@src/shared/context/themeContext'
 import { useLanguage } from '@src/shared/context/languageContext'
+import { getDisplayBucketName } from '@src/shared/lib/utils'
 
 interface fileUploadForm {
   bucketname: string
@@ -31,6 +32,7 @@ export const FileUploadForm = ({ setRefetch, bucketName, onUploadComplete }: Pro
   const { theme } = useTheme()
   const isDark = theme === 'dark'
   const { t } = useLanguage()
+  const effectiveUserId = user?.id
 
   console.log('FileUploadForm render:', { isOpen, type, data })
 
@@ -198,7 +200,9 @@ export const FileUploadForm = ({ setRefetch, bucketName, onUploadComplete }: Pro
                 </DialogTitle>
               </div>
               <p className={`${isDark ? 'text-gray-400' : 'text-gray-500'} text-sm ml-14 mt-1 theme-transition`}>
-                {t('upload_file_to')} {currentFolder ? `${bucketName}/${currentFolder}` : bucketName}
+                {t('upload_file_to')} {currentFolder 
+                  ? `${getDisplayBucketName(bucketName, effectiveUserId)}/${currentFolder}` 
+                  : getDisplayBucketName(bucketName, effectiveUserId)}
               </p>
             </div>
             

@@ -24,7 +24,7 @@ export interface UploadFile {
 export interface DeleteFileByBucketAndName {
   bucketname: string
   filename: string
-  userId: string
+  userId?: string
 }
 
 export interface GetFilesByBucket {
@@ -49,7 +49,11 @@ export interface RenameFile {
 // Function to get files by bucket name
 export const getFilesByBucket = async ({ bucketname, userId }: GetFilesByBucket): Promise<FileObj[]> => {
   try {
-    const response = await api.get<FileObj[]>(`${fileUrlPrefix}/${bucketname}?userId=${userId}`)
+    let url = `${fileUrlPrefix}/${bucketname}`;
+    if (userId) {
+      url += `?userId=${userId}`;
+    }
+    const response = await api.get<FileObj[]>(url)
     return response.data
   } catch (error: any) {
     console.error('Ошибка при получении файлов:', error)
@@ -83,16 +87,18 @@ export const getFileByBucketAndName = async ({
 }
 
 // Function to upload a file
-export const uploadFile = async ({ bucketname, file, userId }: UploadFile): Promise<any> => {
+export const uploadFile = async (
+  { bucketname, file, userId }: UploadFile
+): Promise<any> => {
   try {
     const formData = new FormData()
     formData.append('file', file)
     
     const url = userId 
       ? `${fileUrlPrefix}/${bucketname}?userId=${userId}`
-      : `${fileUrlPrefix}/${bucketname}`
+      : `${fileUrlPrefix}/${bucketname}` // Добавляем userId как query-параметр, если он есть
     
-    const response = await api.post<UploadFileResponse>(url, formData, {
+    const response = await api.post(url, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -133,9 +139,10 @@ export const renameFile = async ({ bucketname, oldFileName, newFileName, userId 
 // Function to delete a file by bucket and file name
 export const deleteFileByBucketAndName = async ({ bucketname, filename, userId }: DeleteFileByBucketAndName): Promise<any> => {
   try {
-    const url = userId 
-      ? `${fileUrlPrefix}/${bucketname}/${filename}?userId=${userId}`
-      : `${fileUrlPrefix}/${bucketname}/${filename}`
+    let url = `${fileUrlPrefix}/${bucketname}/${filename}`;
+    if (userId) {
+      url += `?userId=${userId}`;
+    }
       
     const response = await api.delete<any>(url)
     return response.data
