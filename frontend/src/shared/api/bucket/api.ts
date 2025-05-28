@@ -49,8 +49,14 @@ export const listBuckets = async (userId: string): Promise<Bucket[]> => {
 // Function to fetch buckets with size information
 export const listBucketsWithSize = async (userId: string): Promise<BucketWithSize[]> => {
   try {
-    const bucketsResponse = await api.post<Bucket[]>(`${bucketUrlPrefix}/list`, { userId });
+    const bucketsResponse = await api.get<Bucket[]>(`${bucketUrlPrefix}/${userId}`);
     const buckets = bucketsResponse.data;
+
+    if (!Array.isArray(buckets)) {
+      console.error('Error: bucketsResponse.data is not an array:', buckets);
+      return [];
+    }
+
     const bucketsWithSize = await Promise.all(
       buckets.map(async (bucket) => {
         const bucketSize = await getBucketSize(bucket.name, userId);

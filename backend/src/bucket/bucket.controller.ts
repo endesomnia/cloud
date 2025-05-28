@@ -16,12 +16,11 @@ import { CreateBucketDto } from './dto';
 export class BucketController {
   constructor(private readonly BucketService: BucketService) {}
 
-  @Get()
+  @Get(":userId")
   @ApiBody({ type: CreateBucketDto })
-  async listBuckets(@Body('userId') userId: string) {
+  async listBuckets(@Param('userId') userId: string) {
     try {
-      const buckets = await this.BucketService.listBuckets(userId);
-      return buckets;
+      return await this.BucketService.listBuckets(userId);;
     } catch (error) {
       return error;
     }

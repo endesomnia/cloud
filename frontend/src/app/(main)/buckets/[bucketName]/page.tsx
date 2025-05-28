@@ -78,9 +78,10 @@ const Page = ({ params }: Props) => {
   const isDark = theme === 'dark'
   const { t } = useLanguage()
   const { user } = useUserStore();
+  const effectiveUserId = user?.id;
 
   const fetchData = useCallback(async () => {
-    if (!user?.id) {
+    if (!effectiveUserId) {
       setIsLoading(false);
       return;
     }
@@ -88,7 +89,7 @@ const Page = ({ params }: Props) => {
     try {
       const [filesData, starredData] = await Promise.all([
         getFilesByBucket({ bucketname: params.bucketName }),
-        getStarredItems({ userId: user.id })
+        getStarredItems({ userId: effectiveUserId })
       ]);
 
       if (Array.isArray(filesData)) {
@@ -118,14 +119,14 @@ const Page = ({ params }: Props) => {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id, params.bucketName, t]);
+  }, [effectiveUserId, params.bucketName, t]);
 
   useEffect(() => {
-    if (user?.id) {
+    if (effectiveUserId) {
       fetchData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refetchIndex, user?.id, fetchData]);
+  }, [refetchIndex, effectiveUserId, fetchData]);
 
   useEffect(() => {
     let result = [...files];
@@ -201,7 +202,7 @@ const Page = ({ params }: Props) => {
   }, [starredItems, params.bucketName]);
 
   const toggleStar = useCallback(async (fileName: string) => {
-    if (!user?.id) {
+    if (!effectiveUserId) {
       toast.error(t('auth_required'));
       return;
     }
@@ -216,7 +217,7 @@ const Page = ({ params }: Props) => {
     } else {
       const tempStarredItem: ApiStarredItem = {
         id: 'temp-' + Date.now(),
-        userId: user.id,
+        userId: effectiveUserId,
         bucketName: params.bucketName,
         fileName: fileName,
         type: 'file',
@@ -228,14 +229,14 @@ const Page = ({ params }: Props) => {
 
     try {
       if (isStarred && starredItem) {
-        const success = await removeStarredItem({ id: starredItem.id, userId: user.id });
+        const success = await removeStarredItem({ id: starredItem.id, userId: effectiveUserId });
         if (!success) {
           throw new Error(t('error_removing_from_starred'));
         }
         toast.success(t('removed_from_starred'));
       } else {
         const newItem = await addStarredItem({
-          userId: user.id,
+          userId: effectiveUserId,
           bucketName: params.bucketName,
           fileName: fileName,
           type: 'file',
@@ -250,7 +251,7 @@ const Page = ({ params }: Props) => {
       toast.error(error.message || t('error_updating_starred'));
       setStarredItems(starredItems);
     }
-  }, [user?.id, starredItems, params.bucketName, isFileStarred, t]);
+  }, [effectiveUserId, starredItems, params.bucketName, isFileStarred, t]);
 
   const getSortLabel = (option: SortOption): string => {
     switch (option) {
@@ -272,6 +273,13 @@ const Page = ({ params }: Props) => {
       case 'large': return t('large_files');
       default: return t('filters');
     }
+  };
+
+  const getDisplayBucketName = (bucketFullName: string): string => {
+    if (effectiveUserId && bucketFullName.startsWith(effectiveUserId + '-')) {
+      return bucketFullName.substring(effectiveUserId.length + 1);
+    }
+    return bucketFullName;
   };
 
   return (
@@ -333,11 +341,11 @@ const Page = ({ params }: Props) => {
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 group-hover:translate-x-full transition-all duration-1000 ease-in-out"></div>
                 </div>
                 <div>
-                  <h1 className={`text-4xl font-bold text-transparent bg-clip-text ${isDark 
-                    ? 'bg-gradient-to-r from-white to-gray-400' 
-                    : 'bg-gradient-to-r from-gray-900 to-gray-600'
-                  } theme-transition`}>
-                    {params.bucketName}
+                  <h1 className={`text-3xl md:text-4xl font-bold ${isDark 
+                    ? 'text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-300' 
+                    : 'text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-600'
+                  } theme-transition truncate max-w-md md:max-w-lg lg:max-w-2xl`}>
+                    {getDisplayBucketName(params.bucketName)}
                   </h1>
                   <p className={`${isDark ? 'text-gray-400' : 'text-gray-500'} text-sm mt-1 theme-transition`}>{t('files_in_folder')}</p>
                 </div>

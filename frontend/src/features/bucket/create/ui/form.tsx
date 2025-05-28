@@ -16,6 +16,8 @@ import { FolderPlus, Lock, Check, Sparkles, Server, Globe } from 'lucide-react'
 import { useTheme } from '@src/shared/context/themeContext'
 import { useLanguage } from '@src/shared/context/languageContext'
 import { useSession } from 'next-auth/react'
+import { getSessionUser } from '@src/entities/session/user'
+import { useUserStore } from '@src/entities/user'
 
 interface Props {
   setRefetch: Dispatch<SetStateAction<number>>
@@ -34,9 +36,13 @@ export const BucketCreateForm = ({ setRefetch }: Props) => {
   const { theme } = useTheme()
   const isDark = theme === 'dark'
   const { t } = useLanguage()
+  const { user } = useUserStore();
   
   const modalIsOpen = isOpen && type === 'bucketCreate'
   
+  const userIdPrefixLength = user?.id ? user.id.length + 1 : 0;
+  const maxLengthMessage = t('bucket_name_max_length_prefix') + (63 - userIdPrefixLength) + t('bucket_name_max_length_suffix');
+
   useEffect(() => {
     if (!modalIsOpen) {
       setTimeout(() => {
@@ -63,15 +69,31 @@ export const BucketCreateForm = ({ setRefetch }: Props) => {
       return;
     }
 
-    const { data: session } = useSession();
-    const userId = session?.user?.id!!;
-    
+    const userId = user!!.id
+
     try {
       const response = await createBucket({ bucketname: trimmedName, accessM: accessMode, userId });
       
       if (response.error) {
+        let descriptionMessage: string;
+        const errorPayload = response.error as any;
+
+        if (typeof errorPayload === 'object' && errorPayload !== null) {
+          if (typeof errorPayload.message === 'string' && errorPayload.message.trim() !== '') {
+            descriptionMessage = errorPayload.message;
+          } else if (typeof errorPayload.name === 'string' && errorPayload.name.trim() !== '') {
+            descriptionMessage = errorPayload.name;
+          } else {
+            descriptionMessage = JSON.stringify(errorPayload);
+          }
+        } else if (typeof errorPayload === 'string') {
+          descriptionMessage = errorPayload;
+        } else {
+          descriptionMessage = String(errorPayload);
+        }
+
         toast.error(t('bucket_creation_error'), {
-          description: response.error,
+          description: descriptionMessage,
           position: 'top-center',
           style: { 
             background: isDark ? '#1E293B' : '#ffffff', 
@@ -167,6 +189,14 @@ export const BucketCreateForm = ({ setRefetch }: Props) => {
                         minLength: {
                           value: 3,
                           message: t('bucket_name_min_length')
+                        },
+                        maxLength: {
+                          value: 63 - userIdPrefixLength,
+                          message: maxLengthMessage
+                        },
+                        pattern: {
+                          value: /^[a-z0-9][a-z0-9.-]*[a-z0-9]$/,
+                          message: t('bucket_name_invalid_chars')
                         }
                       })}
                       placeholder={t('bucket_name_placeholder')}

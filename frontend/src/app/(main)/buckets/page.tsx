@@ -60,12 +60,12 @@ const Page = () => {
   const { theme, isMounted: isThemeMounted } = useTheme();
   const isDark = isThemeMounted && theme === 'dark';
   const { t } = useLanguage();
-  const { user } = useUserStore();
+  const { user: storeUser } = useUserStore();
   const { data: session } = useSession();
-  const userId = session?.user?.id;
+  const sessionUserId = session?.user?.id;
+  const effectiveUserId = sessionUserId || storeUser?.id;
 
   const fetchData = useCallback(async () => {
-    const effectiveUserId = userId || user?.id;
     if (!effectiveUserId) {
       setIsLoading(false);
       return;
@@ -104,14 +104,13 @@ const Page = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id, userId, t]);
+  }, [storeUser?.id, sessionUserId, t]);
 
   useEffect(() => {
-    const effectiveUserId = userId || user?.id;
     if (effectiveUserId) {
       fetchData();
     }
-  }, [refetchIndex, user?.id, userId, fetchData]);
+  }, [refetchIndex, storeUser?.id, sessionUserId, fetchData]);
 
   useEffect(() => {
     let result = [...buckets];
@@ -181,8 +180,15 @@ const Page = () => {
     return starredItems.has(bucketName);
   }, [starredItems]);
 
+  const getDisplayBucketName = (bucketFullName: string): string => {
+    if (effectiveUserId && bucketFullName.startsWith(effectiveUserId + '-')) {
+      return bucketFullName.substring(effectiveUserId.length + 1);
+    }
+    return bucketFullName;
+  };
+
   const toggleStar = useCallback(async (bucketName: string) => {
-    if (!user?.id) {
+    if (!effectiveUserId) {
       toast.error(t('auth_required'));
       return;
     }
@@ -196,7 +202,7 @@ const Page = () => {
     } else {
       const tempStarredItem: ApiStarredItem = {
         id: 'temp-' + Date.now(),
-        userId: user.id,
+        userId: effectiveUserId,
         bucketName: bucketName,
         fileName: bucketName,
         type: 'folder',
@@ -208,14 +214,14 @@ const Page = () => {
 
     try {
       if (isStarred && starredItem) {
-        const success = await removeStarredItem({ id: starredItem.id, userId: user.id });
+        const success = await removeStarredItem({ id: starredItem.id, userId: effectiveUserId });
         if (!success) {
           throw new Error(t('error_removing_from_starred'));
         }
         toast.success(t('removed_from_starred'));
       } else {
         const newItem = await addStarredItem({
-          userId: user.id,
+          userId: effectiveUserId,
           bucketName: bucketName,
           fileName: bucketName,
           type: 'folder',
@@ -230,7 +236,7 @@ const Page = () => {
       toast.error(error.message || t('error_updating_starred'));
       setStarredItems(starredItems);
     }
-  }, [user?.id, starredItems, isBucketStarred, t, fetchData]);
+  }, [effectiveUserId, starredItems, isBucketStarred, t, fetchData]);
 
   const getSortLabel = (option: SortOption): string => {
     switch (option) {
@@ -543,7 +549,7 @@ const Page = () => {
                             ? 'group-hover/title:text-[#3B82F6]' 
                             : 'group-hover/title:text-blue-600'
                           } theme-transition`}>
-                            {bucket.name}
+                            {getDisplayBucketName(bucket.name)}
                           </h3>
                         </div>
                       </Button>
@@ -614,7 +620,7 @@ const Page = () => {
                           } transition-colors duration-300 cursor-pointer theme-transition`}
                           onClick={() => redirectTo(`${routes.buckets}/${bucket.name}`)}
                         >
-                          {bucket.name}
+                          {getDisplayBucketName(bucket.name)}
                         </div>
                       </div>
                       

@@ -11,14 +11,18 @@ export class BucketService {
 
   async listBuckets(userId?: string) {
     const allBuckets = await this.minioClient.listBuckets();
+
     if (!userId) return allBuckets;
-    return allBuckets.filter((bucket: any) => bucket.name.startsWith(userId + '_'));
+    console.log(allBuckets);
+    return allBuckets.filter((bucket: any) => bucket.name.startsWith(userId + '-'));
   }
 
   async createBucket(bucketname: string, access: 'public' | 'private', userId?: string) {
     try {
-      const realBucketName = userId ? `${userId}_${bucketname}` : bucketname;
+      const realBucketName = userId ? `${userId}-${bucketname}` : bucketname;
       await this.minioClient.makeBucket(realBucketName);
+
+      console.log(realBucketName)
 
       const policy = access === 'public' ? 'public-read' : 'none';
       const generatedPolicy = this.generateBucketPolicy(realBucketName, policy);
@@ -31,18 +35,20 @@ export class BucketService {
       };
     } catch (error) {
       return {
-        error: error,
+        message: undefined,
+        bucketName: undefined,
+        error: error.message || error.code || error.name || 'Unknown error creating bucket',
       };
     }
   }
 
   async deleteBucket(bucketname: string, userId?: string) {
     try {
-      const realBucketName = userId ? `${userId}_${bucketname}` : bucketname;
+      const realBucketName = userId ? `${userId}-${bucketname}` : bucketname;
       await this.minioClient.removeBucket(realBucketName);
       return { message: 'bucket remove successfully', error: undefined };
     } catch (error) {
-      return { message: undefined, error: error };
+      return { message: undefined, error: error.message || error.code || error.name || 'Unknown error deleting bucket' };
     }
   }
 

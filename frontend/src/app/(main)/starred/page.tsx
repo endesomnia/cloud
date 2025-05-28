@@ -39,6 +39,8 @@ interface StarredItem {
   size?: number;
   lastModified: Date;
   extension?: string;
+  _originalFileName: string;
+  _originalBucketName?: string;
 }
 
 type SortOption = 'name-asc' | 'name-desc' | 'date-asc' | 'date-desc' | 'type-asc' | 'type-desc';
@@ -88,18 +90,8 @@ const getExtension = (fileName: string): string | undefined => {
   return undefined;
 };
 
-const mapApiItemToStarredItem = (apiItem: ApiStarredItem): StarredItem => {
-  return {
-    id: apiItem.id,
-    name: apiItem.fileName,
-    type: apiItem.type,
-    lastModified: new Date(apiItem.createdAt),
-    extension: apiItem.type === 'file' ? getExtension(apiItem.fileName) : undefined,
-    size: apiItem.type === 'file' ? Math.floor(Math.random() * 10000000) : undefined
-  };
-};
-
 const StarredPage = () => {
+  const [rawStarredItems, setRawStarredItems] = useState<ApiStarredItem[]>([]);
   const [starredItems, setStarredItems] = useState<StarredItem[]>([]);
   const [filteredItems, setFilteredItems] = useState<StarredItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -117,12 +109,37 @@ const StarredPage = () => {
   const { theme, isMounted: isThemeMounted } = useTheme();
   const isDark = isThemeMounted && theme === 'dark';
   const { t } = useLanguage();
+  const effectiveUserId = user?.id;
+
+  const mapApiItemToStarredItem = (apiItem: ApiStarredItem, effectiveUserId?: string): StarredItem => {
+    let displayName = apiItem.fileName;
+    if (apiItem.type === 'folder' && effectiveUserId && apiItem.fileName.startsWith(effectiveUserId + '-')) {
+      displayName = apiItem.fileName.substring(effectiveUserId.length + 1);
+    }
+
+    return {
+      id: apiItem.id,
+      name: displayName,
+      type: apiItem.type,
+      lastModified: new Date(apiItem.createdAt),
+      extension: apiItem.type === 'file' ? getExtension(apiItem.fileName) : undefined,
+      size: apiItem.type === 'file' ? Math.floor(Math.random() * 10000000) : undefined,
+      _originalFileName: apiItem.fileName,
+      _originalBucketName: apiItem.bucketName
+    };
+  };
 
   const handleItemClick = (item: StarredItem) => {
-    if (item.name) { 
-        router.push(`${routes.buckets}/${item.name}`);
+    if (item.type === 'folder') {
+      router.push(`${routes.buckets}/${item._originalFileName}`);
+    } else if (item.type === 'file') {
+      if (item._originalBucketName && item._originalFileName) {
+        router.push(`${routes.buckets}/${item._originalBucketName}/${item._originalFileName}`);
+      } else {
+        console.error("Missing original bucket/file name for navigation:", item);
+      }
     } else {
-        console.error("Path is missing for starred item, cannot navigate:", item);
+      console.error("Unknown item type, cannot navigate:", item);
     }
   };
   
@@ -136,9 +153,9 @@ const StarredPage = () => {
         }
         
         const userId = user.id;
-        const apiStarredItems = await getStarredItems({ userId });
-        
-        const mappedItems = apiStarredItems.map(mapApiItemToStarredItem);
+        const apiItems = await getStarredItems({ userId });
+        setRawStarredItems(apiItems);
+        const mappedItems = apiItems.map(apiItem => mapApiItemToStarredItem(apiItem, userId));
         setStarredItems(mappedItems);
       } catch (error) {
         console.error("Ошибка при загрузке избранных элементов:", error);
@@ -531,20 +548,19 @@ const StarredPage = () => {
                       </div>
                       
                       <div className="text-center mb-auto flex-grow relative z-10">
-                        <Button
-                          variant="link"
-                          className={`p-0 h-auto block w-full text-center ${isDark ? 'text-white' : 'text-gray-800'} transition-colors duration-300 ${
-                            item.type === 'folder' 
-                              ? `${isDark ? 'hover:text-[#F59E0B]' : 'hover:text-amber-600'}` 
-                              : `${isDark ? 'hover:text-[#3B82F6]' : 'hover:text-blue-600'}`
-                          } theme-transition`}
-                        >
-                      <div className={`w-full truncate ${isDark ? 'text-gray-300' : 'text-gray-700'} cursor-pointer`} onClick={() => handleItemClick(item)}>{item.name}</div>
-                        </Button>
+                        <div className="flex-grow">
+                          <Button 
+                            variant="link"
+                            className="p-0 text-left w-full h-auto"
+                            onClick={(e) => { e.stopPropagation(); handleItemClick(item); }}
+                          >
+                            <div className={`w-full truncate ${isDark ? 'text-white group-hover/title:text-amber-400' : 'text-gray-800 group-hover/title:text-amber-600'} cursor-pointer transition-colors duration-300 theme-transition`}>{item.name}</div>
+                          </Button>
+                        </div>
                       </div>
                       
                       <button
-                        onClick={() => removeFromStarred(item.id)}
+                        onClick={(e) => { e.stopPropagation(); removeFromStarred(item.id); }}
                         className={`absolute top-3 right-3 p-3 ${isDark 
                           ? 'bg-[#111827]/60 hover:bg-[#111827]/90 border-gray-800/40 hover:border-amber-500/30 hover:shadow-amber-500/10 text-amber-400 hover:text-amber-300' 
                           : 'bg-gray-50/60 hover:bg-gray-50/90 border-gray-200/40 hover:border-amber-500/30 hover:shadow-amber-500/10 text-amber-500 hover:text-amber-600'
@@ -605,20 +621,17 @@ const StarredPage = () => {
                       } border-b transition-colors duration-200 relative group theme-transition`}
                     >
                       <div className="col-span-5 md:col-span-6 flex items-center">
-                        <div className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center mr-3 ${
-                          item.type === 'folder' 
-                            ? isDark 
-                              ? 'bg-gradient-to-r from-[#F59E0B]/20 to-[#FBBF24]/20 text-amber-300' 
-                              : 'bg-gradient-to-r from-amber-500/10 to-amber-400/10 text-amber-600'
-                            : isDark 
-                              ? 'bg-gradient-to-r from-[#3B82F6]/20 to-[#60A5FA]/20 text-blue-300' 
-                              : 'bg-gradient-to-r from-blue-500/10 to-blue-400/10 text-blue-600'
-                        } theme-transition`}>
+                        <div className={`flex-shrink-0 w-10 h-10 rounded-lg ${item.type === 'folder' ? (isDark ? 'bg-gradient-to-r from-[#3B82F6]/20 to-[#60A5FA]/20 text-blue-300' : 'bg-gradient-to-r from-blue-500/10 to-blue-400/10 text-blue-600') : (isDark ? 'bg-gray-700 text-gray-400' : 'bg-gray-200 text-gray-500')} flex items-center justify-center mr-4 shadow-md group-hover:shadow-lg transition-shadow duration-300 theme-transition`}>
                           {item.type === 'folder' 
                             ? <Folder size={24} className="drop-shadow-md" /> 
                             : <File size={24} className="drop-shadow-md" />}
                         </div>
-                        <div className={`truncate ${isDark ? 'text-gray-300' : 'text-gray-700'} cursor-pointer`} onClick={() => handleItemClick(item)}>{item.name}</div>
+                        <div 
+                          className={`truncate font-medium cursor-pointer ${isDark ? 'text-white group-hover:text-blue-400' : 'text-gray-800 group-hover:text-blue-600'} transition-colors duration-300 theme-transition`}
+                          onClick={(e) => { e.stopPropagation(); handleItemClick(item); }}
+                        >
+                          {item.name}
+                        </div>
                       </div>
                       
                       <div className="col-span-3 md:col-span-3 flex items-center justify-center">
@@ -643,7 +656,7 @@ const StarredPage = () => {
                       
                       <div className="col-span-1 md:col-span-1 flex items-center justify-end">
                         <button
-                          onClick={() => removeFromStarred(item.id)}
+                          onClick={(e) => { e.stopPropagation(); removeFromStarred(item.id); }}
                           className={`p-2 rounded-full ${isDark 
                             ? 'text-amber-400 hover:text-amber-300 hover:bg-[#111827]/70' 
                             : 'text-amber-500 hover:text-amber-600 hover:bg-gray-100/70'
