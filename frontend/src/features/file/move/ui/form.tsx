@@ -284,7 +284,7 @@ export const FileMoveForm = ({ setRefetch, bucketName, fileName }: Props) => {
                               onMouseDown={() => selectBucket(bucket.name)}
                             >
                               <FolderTree size={16} className="text-[#4F46E5] mr-2" />
-                              <span className={`${isDark ? 'text-white' : 'text-gray-900'} theme-transition`}>{bucket.name}</span>
+                              <span className={`${isDark ? 'text-white' : 'text-gray-900'} theme-transition`}>{getDisplayBucketName(bucket.name, effectiveUserId)}</span>
                             </div>
                           ))}
                         </div>
