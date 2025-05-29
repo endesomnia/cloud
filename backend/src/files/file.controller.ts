@@ -77,6 +77,7 @@ export class FileController {
   async moveFile(
     @Param('bucketname') bucketname: string,
     @Param('filename') filename: string,
+    @Query('userId') userId: string,
     @Body() moveFileDto: MoveFileDto,
   ) {
     if (!bucketname || !moveFileDto.targetBucket || !filename) {
@@ -84,7 +85,7 @@ export class FileController {
     }
     try {
       const result = await this.fileService.moveFile(
-        bucketname,
+        userId + "-" + bucketname,
         moveFileDto.targetBucket,
         filename,
       );
