@@ -346,6 +346,7 @@ const translations = {
     'continue_with_github': 'Продолжить с GitHub',
     'this_field_required': 'Это поле обязательно',
     'user_created_successfully': 'Пользователь успешно создан',
+    'user_already_exists': 'Пользователь с таким email уже существует',
     'user_doesnt_exists': 'Пользователя с таким email не существует',
     'user_verified': 'Пользователь подтверждён',
     
