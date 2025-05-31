@@ -1,5 +1,7 @@
 import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
+import { Bucket } from '../api';
+import { S } from 'node_modules/framer-motion/dist/types.d-B50aGbjN';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -20,3 +22,10 @@ export const getDisplayBucketName = (fullName?: string, userId?: string): string
   }
   return fullName;
 };
+
+export const findSystemBucketName = (displayName: string, buckets: Bucket[], userId: string) => {
+  const found = buckets.find(bucket =>
+    getDisplayBucketName(bucket.name, userId) === displayName
+  )
+  return found ? found.name : displayName
+}

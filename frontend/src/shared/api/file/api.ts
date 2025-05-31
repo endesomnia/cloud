@@ -113,7 +113,8 @@ export const uploadFile = async (
 // Function to move file to new bucket
 export const moveFile = async ({ sourceBucket, targetBucket, filename, userId }: MoveFile): Promise<any> => {
   try {
-    const response = await api.post<any>(`${moveFileUrlPrefix}/${sourceBucket}/${filename}?userId=${userId}`, {
+    console.log(sourceBucket)
+    const response = await api.post<any>(`${moveFileUrlPrefix}/${sourceBucket}/${filename}`, {
       targetBucket: targetBucket,
     })
     return response.data

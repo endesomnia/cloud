@@ -195,7 +195,6 @@ const Page = () => {
           <h3 className={`text-xl font-semibold ${isDark ? 'text-white' : 'text-gray-900'} theme-transition`}>{t('storage_usage')}</h3>
         </div>
         
-        // Визуализация заполненности хранилища пользователя (прогресс-бар)
         <div className="relative pt-5">
           <div className={`h-2 ${isDark ? 'bg-[#1E293B]' : 'bg-gray-100'} rounded-full overflow-hidden mb-2 theme-transition`}>
             <div 

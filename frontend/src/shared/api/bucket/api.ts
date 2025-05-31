@@ -38,7 +38,7 @@ export interface DeleteBucketResponse {
 // Function to fetch buckets
 export const listBuckets = async (userId: string): Promise<Bucket[]> => {
   try {
-    const response = await api.post<Bucket[]>(`${bucketUrlPrefix}/list`, { userId })
+    const response = await api.get<Bucket[]>(`${bucketUrlPrefix}/${userId}`)
     return response.data
   } catch (error) {
     console.error('Ошибка при получении корзин:', error)

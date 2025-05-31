@@ -13,7 +13,7 @@ export class BucketService {
     const allBuckets = await this.minioClient.listBuckets();
 
     if (!userId) return allBuckets;
-    console.log(allBuckets);
+    (allBuckets);
     return allBuckets.filter((bucket: any) => bucket.name.startsWith(userId + '-'));
   }
 
@@ -22,7 +22,7 @@ export class BucketService {
       const realBucketName = userId ? `${userId}-${bucketname}` : bucketname;
       await this.minioClient.makeBucket(realBucketName);
 
-      console.log(realBucketName)
+      (realBucketName)
 
       const policy = access === 'public' ? 'public-read' : 'none';
       const generatedPolicy = this.generateBucketPolicy(realBucketName, policy);

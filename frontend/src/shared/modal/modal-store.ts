@@ -27,11 +27,9 @@ const useModalStore = create<ModalStoreState & ModalStoreActions>((set) => ({
   type: null,
   data: null,
   onOpen: (type: ModalType, data?: ModalData) => {
-    console.log('Modal opening:', { type, data })
     set({ isOpen: true, type, data: data || null })
   },
   onClose: () => {
-    console.log('Modal closing')
     set({ isOpen: false, type: null, data: null })
   },
 }))

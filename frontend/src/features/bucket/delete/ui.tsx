@@ -83,7 +83,6 @@ export const BucketDeleteForm = ({ bucketName, setRefetch }: BucketDeleteFormPro
           throw e;
         }
       }
-      console.log('Файлы для удаления:', files);
       for (const file of files) {
         try {
           await deleteFileByBucketAndName({
@@ -91,7 +90,6 @@ export const BucketDeleteForm = ({ bucketName, setRefetch }: BucketDeleteFormPro
             filename: file.name,
             userId: effectiveUserId
           });
-          console.log('Удалён файл:', file.name);
         } catch (e: any) {
           if (e?.message?.includes('bucket does not exist')) continue;
           console.error('Ошибка при удалении файла:', file.name, e);
@@ -101,7 +99,6 @@ export const BucketDeleteForm = ({ bucketName, setRefetch }: BucketDeleteFormPro
       const response = await deleteBucket({ bucketname: bucketName, userId: effectiveUserId ?? '' });
       if (response.error) {
         toast.error(response.error.message || t('error_deleting_bucket'));
-        console.log('Ошибка при удалении бакета:', response.error);
       } else {
         setSuccess(true);
         toast.success(t('bucket_deleted_successfully'));

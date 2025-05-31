@@ -9,7 +9,8 @@ import { ArrowRightLeft, Check, FolderTree, AlertCircle, X } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { useTheme } from '@src/shared/context/themeContext'
 import { useLanguage } from '@src/shared/context/languageContext'
-import { getDisplayFileName, getDisplayBucketName } from '@src/shared/lib/utils'
+import { getDisplayFileName, getDisplayBucketName, findSystemBucketName } from '@src/shared/lib/utils'
+import { useUserStore } from '@src/entities/user'
 
 interface FileMoveForm {
   targetBucket: string
@@ -37,23 +38,26 @@ export const FileMoveForm = ({ setRefetch, bucketName, fileName }: Props) => {
   const isDark = theme === 'dark'
   const { t } = useLanguage()
   const { data: session } = useSession()
-  const effectiveUserId = session?.user?.id
+  const user = useUserStore((state) => state.user)
+  const effectiveUserId = session?.user?.id || user?.id
   
   const modalIsOpen = isOpen && type === 'fileMove'
   
   useEffect(() => {
     if (modalIsOpen) {
       const fetchBuckets = async () => {
-        if (!session?.user?.id) return;
+        if (!effectiveUserId) return;
         try {
-          const bucketsData = await listBuckets(session.user.id)
-          const filteredData = bucketsData.filter(bucket => bucket.name !== bucketName)
+          const bucketsData = await listBuckets(effectiveUserId)
+          const fullBucketName = effectiveUserId ? `${effectiveUserId}-${bucketName}` : bucketName;
+          const filteredData = bucketsData.filter(bucket => {
+            return bucket.name !== fullBucketName
+          })
           setBuckets(filteredData)
         } catch (error) {
           console.error('Ошибка при загрузке списка папок:', error)
         }
       }
-      
       fetchBuckets()
     }
   }, [modalIsOpen, bucketName, session?.user?.id])
@@ -92,8 +96,10 @@ export const FileMoveForm = ({ setRefetch, bucketName, fileName }: Props) => {
   }
   
   const selectBucket = (bucketName: string) => {
-    setInputValue(bucketName)
-    setValue('targetBucket', bucketName)
+    const bucket = buckets.find(b => b.name === bucketName)
+    if (!bucket) return
+    setInputValue(getDisplayBucketName(bucket.name, effectiveUserId)) // отображение без айди в инпуте
+    setValue('targetBucket', bucket.name) // внутреннее имя для сабмита
     setShowSuggestions(false)
     setValidationError(null)
   }
@@ -102,7 +108,8 @@ export const FileMoveForm = ({ setRefetch, bucketName, fileName }: Props) => {
     setValidationError(null)
     setIsLoading(true)
     
-    const targetBucketName = inputValue.trim() || data.targetBucket?.trim()
+    const rawInput = data.targetBucket?.trim()
+    const targetBucketName = findSystemBucketName(rawInput, buckets, effectiveUserId || '')
     
     if (!targetBucketName) {
       setValidationError(t("please_specify_bucket_name"))

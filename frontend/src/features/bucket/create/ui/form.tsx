@@ -51,9 +51,7 @@ export const BucketCreateForm = ({ setRefetch }: Props) => {
     }
   }, [modalIsOpen])
 
-  const onSubmitForm = async (data: BucketForm) => {
-    console.log('Форма отправлена:', data);
-    
+  const onSubmitForm = async (data: BucketForm) => {    
     const trimmedName = data.name?.trim();
     
     if (!trimmedName) {

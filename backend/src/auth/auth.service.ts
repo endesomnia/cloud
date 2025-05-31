@@ -48,7 +48,7 @@ export class AuthService {
     if (!user) {
       return {
         status: '404',
-        message: 'User doesnt exist',
+        message: 'user_doesnt_exists',
       };
     }
 
@@ -57,14 +57,14 @@ export class AuthService {
     if (!isPasswordValid) {
       return {
         status: '401',
-        message: 'Invalid Credentials',
+        message: 'invalid_credentials',
       };
     }
 
     const token = this.jwtService.sign({ userId: user.id, email: user.email });
 
     return {
-      message: 'User verified',
+      message: 'user_verified',
       user,
       token,
     };

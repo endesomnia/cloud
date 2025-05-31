@@ -34,8 +34,6 @@ export const FileUploadForm = ({ setRefetch, bucketName, onUploadComplete }: Pro
   const { t } = useLanguage()
   const effectiveUserId = user?.id
 
-  console.log('FileUploadForm render:', { isOpen, type, data })
-
   const modalIsOpen = isOpen && type === 'fileUpload'
   const currentFolder = data?.currentFolder || ''
 

@@ -53,7 +53,8 @@ const translations = {
     'this_field_required': 'This field is required',
     'user_created_successfully': 'User created successfully',
     'user_already_exists': 'User already exists',
-    'User verified': 'User verified',
+    'user_doesnt_exists': 'User doesn\'t exists',
+    'user_verified': 'User verified',
     
     // Theme and Language
     'dark_theme': 'Enable dark theme',
@@ -345,7 +346,8 @@ const translations = {
     'continue_with_github': 'Продолжить с GitHub',
     'this_field_required': 'Это поле обязательно',
     'user_created_successfully': 'Пользователь успешно создан',
-    'User verified': 'Пользователь подтверждён',
+    'user_doesnt_exists': 'Пользователя с таким email не существует',
+    'user_verified': 'Пользователь подтверждён',
     
     // Тема и язык
     'dark_theme': 'Включить темную тему',
