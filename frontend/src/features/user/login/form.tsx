@@ -26,24 +26,24 @@ export const LoginForm = () => {
   const onSubmit: SubmitHandler<UserVerify> = async (data) => {
     const response = await verifyUser({ email: data.email, password: data.password })
     if (isSucessResponse(response)) {
-		const user = response.user
+      const user = response.user
 
-		addUser(user)
+      addUser(user)
 
-		const userId = response.user.id
-		const token = response.token
+      const userId = response.user.id
+      const token = response.token
 
-		Cookies.set('userId', userId, { expires: 365 })
-		Cookies.set('token', token, { expires: 365 })
+      Cookies.set('userId', userId, { expires: 365 })
+      Cookies.set('token', token, { expires: 365 })
 
-		Cookies.remove('authjs.callback-url')
-		Cookies.remove('authjs.csrf-token')
+      Cookies.remove('authjs.callback-url')
+      Cookies.remove('authjs.csrf-token')
 
-		toast(t(response.message))
+      toast(t(response.message))
 
-		reset()
+      reset()
 
-		router.push(routes.buckets)
+      router.push(routes.buckets)
     } else {
       	toast(t(response.message))
     }
