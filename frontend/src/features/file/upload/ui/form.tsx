@@ -108,7 +108,6 @@ export const FileUploadForm = ({ setRefetch, bucketName, onUploadComplete }: Pro
       
       if (response.error) {
         toast.error(t('error_uploading_file'), {
-          description: response.error.name,
           position: 'top-center',
           style: { 
             background: isDark ? '#1E293B' : '#ffffff', 
@@ -120,7 +119,6 @@ export const FileUploadForm = ({ setRefetch, bucketName, onUploadComplete }: Pro
         setAnimateSuccess(false)
       } else {
         toast.success(t('file_uploaded'), {
-          description: response.message,
           position: 'top-center',
           style: { 
             background: isDark ? '#1E293B' : '#ffffff', 
@@ -142,7 +140,6 @@ export const FileUploadForm = ({ setRefetch, bucketName, onUploadComplete }: Pro
         }, 1000)
       }
     } catch (err: any) {
-      console.error('Error uploading file:', err)
       setAnimateSuccess(false)
       toast.error(t('error_uploading_file'), {
         position: 'top-center',

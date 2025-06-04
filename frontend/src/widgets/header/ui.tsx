@@ -28,7 +28,7 @@ export const Header = ({ className }: Props) => {
     Cookies.remove('token')
     Cookies.remove('userId')
     await DoLogout()
-    push(routes.startUp)
+    // push(routes.startUp)
   }
 
   const handleProfile = () => {

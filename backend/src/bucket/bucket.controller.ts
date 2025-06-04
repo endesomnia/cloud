@@ -6,6 +6,7 @@ import {
   Param,
   Post,
   Res,
+  Put,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { BucketService } from './bucket.service';
@@ -50,6 +51,21 @@ export class BucketController {
   ) {
     try {
       const result = await this.BucketService.deleteBucket(bucketname, userId);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  @Put(':oldBucketName/rename')
+  async renameBucket(
+    @Param('oldBucketName') oldBucketName: string,
+    @Body('newBucketName') newBucketName: string,
+    @Body('userId') userId: string,
+    @Res() res: Response,
+  ) {
+    try {
+      const result = await this.BucketService.renameBucket(oldBucketName, newBucketName, userId);
       res.json(result);
     } catch (error) {
       res.status(500).json({ error: error.message });

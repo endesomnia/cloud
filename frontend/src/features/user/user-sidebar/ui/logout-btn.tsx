@@ -14,7 +14,7 @@ export const LogoutBtn = () => {
     Cookies.remove('userId')
 
     await DoLogout()
-    push(routes.startUp)
+    // push(routes.startUp)
   }
   return (
     <form action={handleLogout}>

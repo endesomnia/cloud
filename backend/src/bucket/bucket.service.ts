@@ -1,6 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { log } from 'console';
 import { Client } from 'minio';
 import { MINIO_CONNECTION } from 'nestjs-minio';
 
@@ -21,8 +20,6 @@ export class BucketService {
     try {
       const realBucketName = userId ? `${userId}-${bucketname}` : bucketname;
       await this.minioClient.makeBucket(realBucketName);
-
-      (realBucketName)
 
       const policy = access === 'public' ? 'public-read' : 'none';
       const generatedPolicy = this.generateBucketPolicy(realBucketName, policy);
@@ -77,6 +74,47 @@ export class BucketService {
           },
         ],
       });
+    }
+  }
+
+  async renameBucket(oldBucketName: string, newBucketName: string, userId?: string) {
+    const realOldBucketName = userId ? `${userId}-${oldBucketName}` : oldBucketName;
+    const realNewBucketName = userId ? `${userId}-${newBucketName}` : newBucketName;
+
+    try {
+      await this.minioClient.makeBucket(realNewBucketName);
+      const policy = this.generateBucketPolicy(realNewBucketName, 'none');
+      await this.minioClient.setBucketPolicy(realNewBucketName, policy);
+
+      const objectsStream = this.minioClient.listObjects(realOldBucketName, '', true);
+      const objectsToCopy: string[] = [];
+      for await (const obj of objectsStream) {
+        objectsToCopy.push(obj.name);
+      }
+
+      for (const objectName of objectsToCopy) {
+        await this.minioClient.copyObject(realNewBucketName, objectName, `${realOldBucketName}/${objectName}`);
+      }
+
+      await this.minioClient.removeObjects(realOldBucketName, objectsToCopy);
+      await this.minioClient.removeBucket(realOldBucketName);
+
+      return {
+        message: 'Bucket renamed successfully',
+        oldBucketName: realOldBucketName,
+        newBucketName: realNewBucketName,
+        error: undefined,
+      };
+    } catch (error) {
+      try {
+        await this.minioClient.removeBucket(realNewBucketName);
+      } catch (cleanupError) {
+        console.error(`Failed to cleanup new bucket ${realNewBucketName} after rename error:`, cleanupError);
+      }
+      return {
+        message: undefined,
+        error: error.message || error.code || error.name || 'Unknown error renaming bucket',
+      };
     }
   }
 }

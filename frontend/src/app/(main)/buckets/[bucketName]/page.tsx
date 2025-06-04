@@ -634,7 +634,7 @@ const Page = ({ params }: Props) => {
                             {isFileStarred(file.name) ? <StarOff size={18} /> : <Star size={18} />}
                           </button>
                           <FileRenameForm bucketName={params.bucketName} filename={file.name} setRefetch={setRefetch} />
-                          <FileDownloadButton bucketName={params.bucketName} filename={file.name} setRefetch={setRefetch} />
+                          <FileDownloadButton bucketName={params.bucketName} filename={file.name} setRefetch={setRefetch} userId={effectiveUserId} />
                           <FileMoveButton />
                           <FileMoveForm bucketName={params.bucketName} fileName={file.name} setRefetch={setRefetch} />
                           <FileDeleteButton fileName={file.name} />

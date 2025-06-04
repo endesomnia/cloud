@@ -35,6 +35,17 @@ export interface DeleteBucketResponse {
   error: undefined | string
 }
 
+export interface RenameBucket {
+  oldBucketName: string;
+  newBucketName: string;
+  userId: string;
+}
+
+export interface RenameBucketResponse {
+  message: string | undefined;
+  error: string | undefined;
+}
+
 // Function to fetch buckets
 export const listBuckets = async (userId: string): Promise<Bucket[]> => {
   try {
@@ -117,3 +128,17 @@ export const deleteBucket = async ({ bucketname, userId }: DeleteBucket): Promis
     return { message: undefined, error: error }
   }
 }
+
+// Function to rename a bucket
+export const renameBucket = async ({ oldBucketName, newBucketName, userId }: RenameBucket): Promise<RenameBucketResponse> => {
+  try {
+    const response = await api.put<RenameBucketResponse>(`${bucketUrlPrefix}/${oldBucketName}/rename`, {
+      newBucketName,
+      userId,
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('Ошибка при переименовании корзины:', error);
+    return { message: undefined, error: error.message };
+  }
+};

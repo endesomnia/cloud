@@ -1,6 +1,6 @@
 import React from 'react'
 import { Download } from 'lucide-react'
-import { cn } from '@src/shared/lib'
+import { cn, getDisplayFileName } from '@src/shared/lib'
 import { Button } from '@src/shared/ui'
 import { SetStateAction, Dispatch } from 'react'
 import { getFileByBucketAndName } from '@src/shared/api'
@@ -14,26 +14,28 @@ interface Props {
   classes?: string
   buttonClassName?: string
   iconOnly?: boolean
+  userId?: string // Add userId to props
 }
 
-export const FileDownloadButton = ({ 
-  bucketName, 
-  classes, 
-  setRefetch, 
-  filename, 
-  buttonClassName, 
-  iconOnly = false 
+export const FileDownloadButton = ({
+  bucketName,
+  classes,
+  setRefetch,
+  filename,
+  buttonClassName,
+  iconOnly = false,
+  userId // Destructure userId
 }: Props) => {
   const { t } = useLanguage()
-  
+
   const handleDownloadFile = async () => {
     try {
-      const fileData = await getFileByBucketAndName({ bucketname: bucketName, filename })
+      const fileData = await getFileByBucketAndName({ bucketname: bucketName, filename, userId })
       if (fileData) {
         const url = window.URL.createObjectURL(new Blob([fileData]))
         const link = document.createElement('a')
         link.href = url
-        link.setAttribute('download', filename)
+        link.setAttribute('download', getDisplayFileName(filename, userId))
         document.body.appendChild(link)
         link.click()
         // @ts-ignore

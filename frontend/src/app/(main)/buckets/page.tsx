@@ -529,8 +529,8 @@ const Page = () => {
                           >
                             {isBucketStarred(bucket.name) ? <StarOff size={18} /> : <Star size={18} />}
                           </button>
-                          <BucketDeleteButton bucketName={getDisplayBucketName(bucket.name, effectiveUserId)} setRefetch={setRefetchIndex} iconOnly={true} />
-                          <BucketDeleteForm bucketName={getDisplayBucketName(bucket.name, effectiveUserId)} setRefetch={setRefetchIndex} />
+          <BucketDeleteButton bucketName={getDisplayBucketName(bucket.name, effectiveUserId)} setRefetch={setRefetchIndex} iconOnly={true} />
+          <BucketDeleteForm bucketName={getDisplayBucketName(bucket.name, effectiveUserId)} setRefetch={setRefetchIndex} />
                         </div>
                       </div>
                       
